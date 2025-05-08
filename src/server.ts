@@ -6,7 +6,7 @@ import employeeRoutes from './routes/employeeRoutes';
 import leaveRoutes from './routes/leaveRoutes';
 import { authRoutes } from './routes/authRoutes'; // Import the auth route for login
 import AppDataSource from './data-source';
-
+import dashboardRoutes from './routes/dashboardRoutes';
 dotenv.config();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'sD7@8kj1!ld$gF30P1wz';
@@ -26,6 +26,13 @@ const init = async () => {
   const server = Hapi.server({
     port: process.env.PORT || 5000,
     host: 'localhost',
+    routes: {
+      cors: {
+        origin: ['http://localhost:5173', 'http://localhost:5174'],
+        credentials: true,
+        headers: ['Accept', 'Content-Type', 'Authorization']
+      }
+    }
   });
 
   (server.app as { dataSource: typeof AppDataSource }).dataSource = AppDataSource;
@@ -59,10 +66,11 @@ const init = async () => {
 
   
   server.route(authRoutes); 
-
+  
   // Protected routes (employee and leave routes)
   employeeRoutes.forEach(route => server.route(route)); // Register each employee route
   leaveRoutes.forEach(route => server.route(route)); // Register each leave route
+  dashboardRoutes.forEach(route => server.route(route));
 
   // Start the server
   try {

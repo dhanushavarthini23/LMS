@@ -19,7 +19,8 @@
   },
   "include": [
     "src/**/*.ts",
-    "types/**/*.d.ts"  // Include all .d.ts files in the types folder
+    "types/**/*.d.ts",  // Include all .d.ts files in the types folder
+    "src/types/**/*.d.ts"  // Include our new types directory
   ],
   "exclude": [
     "node_modules"
