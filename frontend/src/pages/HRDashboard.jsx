@@ -1,40 +1,37 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { getPendingLeaveRequests, approveLeaveRequestManager, approveLeaveRequestHR, getDashboardData } from '../api/api';
+import { jwtDecode } from 'jwt-decode';
+import { getPendingLeaveRequests, approveLeaveRequestHR, getDashboardData, getEmployees } from '../api/api';
 import TeamManagement from '../components/TeamManagement';
 import LeaveReports from '../components/LeaveReports';
-import DelegateAuthority from '../components/DelegateAuthority';
+import LeaveCalendar from '../components/LeaveCalendar';
+import LeavePolicies from '../components/LeavePolicies';
 
-const AdminDashboard = () => {
+const HRDashboard = () => {
   const { authData, logout } = useContext(AuthContext);
   const [pendingRequests, setPendingRequests] = useState([]);
   const [dashboardData, setDashboardData] = useState(null);
+  const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [userRole, setUserRole] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [userName, setUserName] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Decode JWT to get user role
+    // Get user name from token
     if (authData?.token) {
       try {
-        const base64Url = authData.token.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
-        
-        const decoded = JSON.parse(jsonPayload);
-        setUserRole(decoded.role || '');
+        const decoded = jwtDecode(authData.token);
+        console.log('Decoded token:', decoded); // Log to see the structure
+        setUserName(decoded.name || decoded.username || 'HR Manager');
       } catch (error) {
         console.error('Error decoding token:', error);
+        setUserName('HR Manager');
       }
     }
-  }, [authData]);
 
-  useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -46,6 +43,17 @@ const AdminDashboard = () => {
         // Fetch dashboard data
         const dashboardResponse = await getDashboardData();
         setDashboardData(dashboardResponse.data);
+        
+        // Fetch all employees
+        const employeesResponse = await getEmployees();
+        // Add default position and department if they don't exist
+        const enhancedEmployeeData = employeesResponse.data.map(employee => ({
+          ...employee,
+          position: employee.position || employee.role || 'Staff',
+          department: employee.department || 'General',
+          onLeave: employee.onLeave || false
+        }));
+        setEmployees(enhancedEmployeeData);
         
         setError('');
       } catch (error) {
@@ -61,13 +69,9 @@ const AdminDashboard = () => {
     }
   }, [authData]);
 
-  const handleApprove = async (id, level) => {
+  const handleApprove = async (id) => {
     try {
-      if (level === 'manager' || userRole === 'Manager') {
-        await approveLeaveRequestManager(id, true);
-      } else if (level === 'hr' || userRole === 'HR') {
-        await approveLeaveRequestHR(id, true);
-      }
+      await approveLeaveRequestHR(id, true);
       
       // Refresh the pending requests
       const response = await getPendingLeaveRequests();
@@ -78,13 +82,9 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleReject = async (id, level) => {
+  const handleReject = async (id) => {
     try {
-      if (level === 'manager' || userRole === 'Manager') {
-        await approveLeaveRequestManager(id, false);
-      } else if (level === 'hr' || userRole === 'HR') {
-        await approveLeaveRequestHR(id, false);
-      }
+      await approveLeaveRequestHR(id, false);
       
       // Refresh the pending requests
       const response = await getPendingLeaveRequests();
@@ -109,9 +109,10 @@ const AdminDashboard = () => {
   return (
     <div className="max-w-6xl mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">
-          {userRole === 'HR' ? 'HR Dashboard' : 'Manager Dashboard'}
-        </h1>
+        <div>
+          <h1 className="text-2xl font-bold">HR Dashboard</h1>
+          <p className="text-gray-600">Welcome, {userName}</p>
+        </div>
         <button
           onClick={handleLogout}
           className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
@@ -134,14 +135,24 @@ const AdminDashboard = () => {
             Dashboard
           </button>
           <button
-            onClick={() => setActiveTab('team')}
+            onClick={() => setActiveTab('employees')}
             className={`py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'team'
+              activeTab === 'employees'
                 ? 'border-blue-500 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            Team Management
+            Employees
+          </button>
+          <button
+            onClick={() => setActiveTab('calendar')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'calendar'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Leave Calendar
           </button>
           <button
             onClick={() => setActiveTab('reports')}
@@ -154,14 +165,14 @@ const AdminDashboard = () => {
             Reports
           </button>
           <button
-            onClick={() => setActiveTab('delegate')}
+            onClick={() => setActiveTab('policies')}
             className={`py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'delegate'
+              activeTab === 'policies'
                 ? 'border-blue-500 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            Delegate Authority
+            Policies
           </button>
         </nav>
       </div>
@@ -185,7 +196,7 @@ const AdminDashboard = () => {
                 <div className="bg-white p-4 rounded shadow">
                   <h2 className="text-lg font-semibold mb-2">Total Employees</h2>
                   <div className="text-blue-500 font-bold text-2xl">
-                    {dashboardData?.totalEmployees || 0}
+                    {employees?.length || 0}
                   </div>
                 </div>
 
@@ -224,15 +235,15 @@ const AdminDashboard = () => {
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Date</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Date</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Manager Approval</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {pendingRequests.map((request) => {
                           // Determine if current user can approve this request
-                          const canApprove = 
-                            (userRole === 'Manager' && request.approvals?.some(a => a.level === 'manager' && a.status === 'Pending')) ||
-                            (userRole === 'HR' && request.approvals?.some(a => a.level === 'hr' && a.status === 'Pending'));
+                          const canApprove = request.approvals?.some(a => a.level === 'hr' && a.status === 'Pending');
+                          const managerApproved = request.approvals?.some(a => a.level === 'manager' && a.status === 'Approved');
                           
                           return (
                             <tr key={request.id} className="hover:bg-gray-50">
@@ -252,16 +263,23 @@ const AdminDashboard = () => {
                                 {request.reason || 'No reason provided'}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
+                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                  managerApproved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                                }`}>
+                                  {managerApproved ? 'Approved' : 'Pending'}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
                                 {canApprove ? (
                                   <div className="flex space-x-2">
                                     <button
-                                      onClick={() => handleApprove(request.id, userRole === 'Manager' ? 'manager' : 'hr')}
+                                      onClick={() => handleApprove(request.id)}
                                       className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm"
                                     >
                                       Approve
                                     </button>
                                     <button
-                                      onClick={() => handleReject(request.id, userRole === 'Manager' ? 'manager' : 'hr')}
+                                      onClick={() => handleReject(request.id)}
                                       className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
                                     >
                                       Reject
@@ -269,7 +287,7 @@ const AdminDashboard = () => {
                                   </div>
                                 ) : (
                                   <span className="text-gray-500 text-sm">
-                                    {userRole === 'Manager' ? 'Waiting for manager approval' : 'Waiting for HR approval'}
+                                    Waiting for HR approval
                                   </span>
                                 )}
                               </td>
@@ -284,18 +302,21 @@ const AdminDashboard = () => {
             </>
           )}
 
-          {/* Team Management Tab */}
-          {activeTab === 'team' && <TeamManagement />}
+          {/* Employees Tab */}
+          {activeTab === 'employees' && <TeamManagement />}
+
+          {/* Calendar Tab */}
+          {activeTab === 'calendar' && <LeaveCalendar />}
 
           {/* Reports Tab */}
           {activeTab === 'reports' && <LeaveReports />}
 
-          {/* Delegate Authority Tab */}
-          {activeTab === 'delegate' && <DelegateAuthority />}
+          {/* Policies Tab */}
+          {activeTab === 'policies' && <LeavePolicies />}
         </>
       )}
     </div>
   );
 };
 
-export default AdminDashboard;
+export default HRDashboard;

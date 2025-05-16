@@ -1,40 +1,37 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { getPendingLeaveRequests, approveLeaveRequestManager, approveLeaveRequestHR, getDashboardData } from '../api/api';
+import { jwtDecode } from 'jwt-decode';
+import { getPendingLeaveRequests, approveLeaveRequestManager, getDashboardData, getEmployees } from '../api/api';
 import TeamManagement from '../components/TeamManagement';
 import LeaveReports from '../components/LeaveReports';
 import DelegateAuthority from '../components/DelegateAuthority';
+import LeaveCalendar from '../components/LeaveCalendar';
 
-const AdminDashboard = () => {
+const ManagerDashboard = () => {
   const { authData, logout } = useContext(AuthContext);
   const [pendingRequests, setPendingRequests] = useState([]);
   const [dashboardData, setDashboardData] = useState(null);
+  const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [userRole, setUserRole] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [userName, setUserName] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Decode JWT to get user role
+    // Get user name from token
     if (authData?.token) {
       try {
-        const base64Url = authData.token.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
-        
-        const decoded = JSON.parse(jsonPayload);
-        setUserRole(decoded.role || '');
+        const decoded = jwtDecode(authData.token);
+        console.log('Decoded token:', decoded); // Log to see the structure
+        setUserName(decoded.name || decoded.username || 'Manager');
       } catch (error) {
         console.error('Error decoding token:', error);
+        setUserName('Manager');
       }
     }
-  }, [authData]);
 
-  useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -46,6 +43,17 @@ const AdminDashboard = () => {
         // Fetch dashboard data
         const dashboardResponse = await getDashboardData();
         setDashboardData(dashboardResponse.data);
+        
+        // Fetch team members
+        const teamResponse = await getEmployees();
+        // Add default position and department if they don't exist
+        const enhancedTeamData = teamResponse.data.map(employee => ({
+          ...employee,
+          position: employee.position || employee.role || 'Staff',
+          department: employee.department || 'General',
+          onLeave: employee.onLeave || false
+        }));
+        setTeamMembers(enhancedTeamData);
         
         setError('');
       } catch (error) {
@@ -61,13 +69,9 @@ const AdminDashboard = () => {
     }
   }, [authData]);
 
-  const handleApprove = async (id, level) => {
+  const handleApprove = async (id) => {
     try {
-      if (level === 'manager' || userRole === 'Manager') {
-        await approveLeaveRequestManager(id, true);
-      } else if (level === 'hr' || userRole === 'HR') {
-        await approveLeaveRequestHR(id, true);
-      }
+      await approveLeaveRequestManager(id, true);
       
       // Refresh the pending requests
       const response = await getPendingLeaveRequests();
@@ -78,13 +82,9 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleReject = async (id, level) => {
+  const handleReject = async (id) => {
     try {
-      if (level === 'manager' || userRole === 'Manager') {
-        await approveLeaveRequestManager(id, false);
-      } else if (level === 'hr' || userRole === 'HR') {
-        await approveLeaveRequestHR(id, false);
-      }
+      await approveLeaveRequestManager(id, false);
       
       // Refresh the pending requests
       const response = await getPendingLeaveRequests();
@@ -109,9 +109,10 @@ const AdminDashboard = () => {
   return (
     <div className="max-w-6xl mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">
-          {userRole === 'HR' ? 'HR Dashboard' : 'Manager Dashboard'}
-        </h1>
+        <div>
+          <h1 className="text-2xl font-bold">Manager Dashboard</h1>
+          <p className="text-gray-600">Welcome, {userName}</p>
+        </div>
         <button
           onClick={handleLogout}
           className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
@@ -142,6 +143,16 @@ const AdminDashboard = () => {
             }`}
           >
             Team Management
+          </button>
+          <button
+            onClick={() => setActiveTab('calendar')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'calendar'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Leave Calendar
           </button>
           <button
             onClick={() => setActiveTab('reports')}
@@ -181,11 +192,11 @@ const AdminDashboard = () => {
             <>
               {/* Dashboard Summary Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                {/* Total Employees Card */}
+                {/* Team Size Card */}
                 <div className="bg-white p-4 rounded shadow">
-                  <h2 className="text-lg font-semibold mb-2">Total Employees</h2>
+                  <h2 className="text-lg font-semibold mb-2">Team Size</h2>
                   <div className="text-blue-500 font-bold text-2xl">
-                    {dashboardData?.totalEmployees || 0}
+                    {teamMembers?.length || 0}
                   </div>
                 </div>
 
@@ -204,6 +215,56 @@ const AdminDashboard = () => {
                     {dashboardData?.approvedThisMonth || 0}
                   </div>
                 </div>
+              </div>
+
+              {/* Team Members Section */}
+              <div className="bg-white shadow rounded-lg p-6 mb-6">
+                <h2 className="text-xl font-semibold mb-4">My Team</h2>
+                
+                {teamMembers.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    No team members found.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Position</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {teamMembers.map((employee) => (
+                          <tr key={employee.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {employee.name}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {employee.position}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {employee.department}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {employee.email}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                employee.onLeave ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                              }`}>
+                                {employee.onLeave ? 'On Leave' : 'Available'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
 
               {/* Pending Leave Requests Section */}
@@ -230,9 +291,7 @@ const AdminDashboard = () => {
                       <tbody className="bg-white divide-y divide-gray-200">
                         {pendingRequests.map((request) => {
                           // Determine if current user can approve this request
-                          const canApprove = 
-                            (userRole === 'Manager' && request.approvals?.some(a => a.level === 'manager' && a.status === 'Pending')) ||
-                            (userRole === 'HR' && request.approvals?.some(a => a.level === 'hr' && a.status === 'Pending'));
+                          const canApprove = request.approvals?.some(a => a.level === 'manager' && a.status === 'Pending');
                           
                           return (
                             <tr key={request.id} className="hover:bg-gray-50">
@@ -255,13 +314,13 @@ const AdminDashboard = () => {
                                 {canApprove ? (
                                   <div className="flex space-x-2">
                                     <button
-                                      onClick={() => handleApprove(request.id, userRole === 'Manager' ? 'manager' : 'hr')}
+                                      onClick={() => handleApprove(request.id)}
                                       className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm"
                                     >
                                       Approve
                                     </button>
                                     <button
-                                      onClick={() => handleReject(request.id, userRole === 'Manager' ? 'manager' : 'hr')}
+                                      onClick={() => handleReject(request.id)}
                                       className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
                                     >
                                       Reject
@@ -269,7 +328,7 @@ const AdminDashboard = () => {
                                   </div>
                                 ) : (
                                   <span className="text-gray-500 text-sm">
-                                    {userRole === 'Manager' ? 'Waiting for manager approval' : 'Waiting for HR approval'}
+                                    Waiting for manager approval
                                   </span>
                                 )}
                               </td>
@@ -287,6 +346,9 @@ const AdminDashboard = () => {
           {/* Team Management Tab */}
           {activeTab === 'team' && <TeamManagement />}
 
+          {/* Calendar Tab */}
+          {activeTab === 'calendar' && <LeaveCalendar />}
+
           {/* Reports Tab */}
           {activeTab === 'reports' && <LeaveReports />}
 
@@ -298,4 +360,4 @@ const AdminDashboard = () => {
   );
 };
 
-export default AdminDashboard;
+export default ManagerDashboard;

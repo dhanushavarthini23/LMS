@@ -1,70 +1,193 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { getLeaveRequests } from "../api/api";
+import { getLeaveRequests, getLeaveBalance } from "../api/api";
 import { AuthContext } from "../context/AuthContext";
-import { Navigate } from 'react-router-dom'; // For redirecting if not logged in
+import { Navigate } from 'react-router-dom';
+import LeaveForm from '../components/LeaveForm';
 
 const LeaveRequestsPage = () => {
   const { authData } = useContext(AuthContext);
   const [requests, setRequests] = useState([]);
+  const [leaveBalance, setLeaveBalance] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showForm, setShowForm] = useState(false);
+
+  const fetchData = async () => {
+    if (!authData?.token) return;
+    
+    setLoading(true);
+    setError('');
+    
+    try {
+      // Fetch leave requests
+      const requestsResponse = await getLeaveRequests();
+      setRequests(requestsResponse.data);
+      
+      // Fetch leave balance
+      const balanceResponse = await getLeaveBalance();
+      setLeaveBalance(balanceResponse.data.leaveBalance);
+    } catch (error) {
+      setError('Error fetching data');
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchRequests = async () => {
-      if (!authData?.token) return;
-      try {
-        setLoading(true);
-        const response = await getLeaveRequests(authData.token);
-        setRequests(response.data);
-      } catch (error) {
-        setError('Error fetching leave requests');
-        console.error('Error fetching leave requests:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (authData?.token) {
-      fetchRequests();
+      fetchData();
     }
   }, [authData]);
+
+  const handleLeaveRequestSuccess = () => {
+    setShowForm(false);
+    fetchData(); // Refresh the data
+  };
 
   if (!authData?.token) {
     return <Navigate to="/login" />;
   }
 
+  // Format date for display
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
+  };
+
+  // Get status badge color
+  const getStatusBadgeColor = (status) => {
+    switch (status) {
+      case 'Approved':
+        return 'bg-green-100 text-green-800';
+      case 'Rejected':
+        return 'bg-red-100 text-red-800';
+      case 'Pending':
+        return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Leave Requests</h1>
+    <div className="p-6 max-w-6xl mx-auto">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Leave Requests</h1>
+        <button 
+          onClick={() => setShowForm(!showForm)}
+          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+        >
+          {showForm ? 'Cancel' : 'New Leave Request'}
+        </button>
+      </div>
 
-      {loading && <p>Loading...</p>}  {/* Loading state */}
-      {error && <p className="text-red-500">{error}</p>}  {/* Error state */}
+      {/* Leave Balance Card */}
+      {leaveBalance && (
+        <div className="bg-white p-4 rounded shadow mb-6">
+          <h2 className="text-lg font-semibold mb-2">Leave Balance</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-blue-50 p-3 rounded">
+              <p className="text-sm text-gray-600">Annual Leave</p>
+              <p className="text-xl font-bold">{leaveBalance.annual || 0} days</p>
+            </div>
+            <div className="bg-green-50 p-3 rounded">
+              <p className="text-sm text-gray-600">Sick Leave</p>
+              <p className="text-xl font-bold">{leaveBalance.sick || 0} days</p>
+            </div>
+            <div className="bg-purple-50 p-3 rounded">
+              <p className="text-sm text-gray-600">Personal Leave</p>
+              <p className="text-xl font-bold">{leaveBalance.personal || 0} days</p>
+            </div>
+          </div>
+        </div>
+      )}
 
-      {!loading && requests.length === 0 && <p>No leave requests available.</p>} {/* No data state */}
+      {/* Leave Request Form */}
+      {showForm && (
+        <div className="mb-6">
+          <LeaveForm onSuccess={handleLeaveRequestSuccess} />
+        </div>
+      )}
 
-      {!loading && requests.length > 0 && (
-        <table className="min-w-full border border-gray-300">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="border px-4 py-2">Employee ID</th>
-              <th className="border px-4 py-2">Leave Type</th>
-              <th className="border px-4 py-2">Start Date</th>
-              <th className="border px-4 py-2">End Date</th>
-              <th className="border px-4 py-2">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {requests.map((req) => (
-              <tr key={req.id}>
-                <td className="border px-4 py-2">{req.employee_id}</td>
-                <td className="border px-4 py-2">{req.leave_type}</td>
-                <td className="border px-4 py-2">{req.start_date}</td>
-                <td className="border px-4 py-2">{req.end_date}</td>
-                <td className="border px-4 py-2">{req.status}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Loading and Error States */}
+      {loading && (
+        <div className="flex justify-center items-center h-40">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
+        </div>
+      )}
+      
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
+        </div>
+      )}
+
+      {/* Leave Requests Table */}
+      {!loading && !error && (
+        <>
+          {requests.length === 0 ? (
+            <div className="bg-white p-6 rounded shadow text-center">
+              <p className="text-gray-500">No leave requests available.</p>
+              {!showForm && (
+                <button 
+                  onClick={() => setShowForm(true)}
+                  className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+                >
+                  Create Your First Leave Request
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="bg-white shadow rounded overflow-hidden">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {requests.map((req) => {
+                    // Calculate duration in days
+                    const start = new Date(req.startDate);
+                    const end = new Date(req.endDate);
+                    const diffTime = Math.abs(end - start);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end days
+                    
+                    return (
+                      <tr key={req.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {req.leaveType || 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {formatDate(req.startDate)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {formatDate(req.endDate)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {diffDays} day{diffDays !== 1 ? 's' : ''}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeColor(req.status)}`}>
+                            {req.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {req.reason || 'No reason provided'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

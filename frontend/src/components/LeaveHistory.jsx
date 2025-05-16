@@ -1,49 +1,110 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import { getLeaveHistory } from '../api/api';
 
-const LeaveHistory = () => {
+const LeaveHistory = ({ limit }) => {
   const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const response = await axios.get('/api/leave/history', {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
+        setLoading(true);
+        const response = await getLeaveHistory();
         setHistory(response.data);
+        setError('');
       } catch (error) {
         console.error('Error fetching leave history:', error);
+        setError('Failed to load leave history. Please try again later.');
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchHistory();
   }, []);
 
+  // Format date for display
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
+  };
+
+  // Calculate duration between two dates in days
+  const calculateDuration = (startDate, endDate) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end - start);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end days
+    return `${diffDays} day${diffDays !== 1 ? 's' : ''}`;
+  };
+
   return (
-    <div className="p-6">
-      <h2 className="text-xl font-semibold mb-4">Leave History</h2>
-      <table className="min-w-full table-auto border-collapse">
-        <thead>
-          <tr>
-            <th className="px-4 py-2 text-left border-b">Leave Type</th>
-            <th className="px-4 py-2 text-left border-b">Start Date</th>
-            <th className="px-4 py-2 text-left border-b">End Date</th>
-            <th className="px-4 py-2 text-left border-b">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {history.map((leave) => (
-            <tr key={leave.id}>
-              <td className="px-4 py-2 border-b">{leave.leaveType}</td>
-              <td className="px-4 py-2 border-b">{leave.startDate}</td>
-              <td className="px-4 py-2 border-b">{leave.endDate}</td>
-              <td className="px-4 py-2 border-b">{leave.status}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className={limit ? "" : "bg-white shadow rounded-lg p-6"}>
+      {!limit && <h2 className="text-xl font-semibold mb-4">Leave History</h2>}
+      
+      {loading && (
+        <div className="flex justify-center items-center h-40">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
+        </div>
+      )}
+      
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
+        </div>
+      )}
+      
+      {!loading && !error && history.length === 0 && (
+        <div className="text-center py-8 text-gray-500">
+          No leave history available.
+        </div>
+      )}
+      
+      {!loading && !error && history.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Leave Type</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {(limit ? history.slice(0, limit) : history).map((leave) => (
+                <tr key={leave.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {leave.leaveType || 'N/A'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {formatDate(leave.startDate)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {formatDate(leave.endDate)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {calculateDuration(leave.startDate, leave.endDate)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                      leave.status === 'Approved' 
+                        ? 'bg-green-100 text-green-800' 
+                        : leave.status === 'Rejected' 
+                          ? 'bg-red-100 text-red-800' 
+                          : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {leave.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 };
