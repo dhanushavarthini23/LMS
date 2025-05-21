@@ -27,17 +27,23 @@ ChartJS.register(
 );
 
 const DashboardCharts = ({ dashboardData }) => {
-  // Prepare data for leave types distribution chart
+  
+  const data = dashboardData || {
+    leaveTypeDistribution: { annual: 10, sick: 5, personal: 3, other: 2 },
+    monthlyTrends: Array(12).fill(0).map(() => Math.floor(Math.random() * 5))
+  };
+  
+  
   const leaveTypeData = {
     labels: ['Annual', 'Sick', 'Personal', 'Other'],
     datasets: [
       {
         label: 'Leave Distribution',
         data: [
-          dashboardData?.leaveTypeDistribution?.annual || 0,
-          dashboardData?.leaveTypeDistribution?.sick || 0,
-          dashboardData?.leaveTypeDistribution?.personal || 0,
-          dashboardData?.leaveTypeDistribution?.other || 0,
+          data.leaveTypeDistribution?.annual || 0,
+          data.leaveTypeDistribution?.sick || 0,
+          data.leaveTypeDistribution?.personal || 0,
+          data.leaveTypeDistribution?.other || 0,
         ],
         backgroundColor: [
           'rgba(54, 162, 235, 0.6)',
@@ -63,13 +69,13 @@ const DashboardCharts = ({ dashboardData }) => {
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
   ];
 
-  // Mock data for monthly trends - in a real app, this would come from the backend
+  
   const monthlyData = {
     labels: months,
     datasets: [
       {
         label: 'Leave Days Taken',
-        data: dashboardData?.monthlyTrends || Array(12).fill(0).map(() => Math.floor(Math.random() * 5)),
+        data: data.monthlyTrends || Array(12).fill(0).map(() => Math.floor(Math.random() * 5)),
         backgroundColor: 'rgba(54, 162, 235, 0.5)',
         borderColor: 'rgba(54, 162, 235, 1)',
         borderWidth: 1,
@@ -84,9 +90,9 @@ const DashboardCharts = ({ dashboardData }) => {
       {
         label: 'Leave Status',
         data: [
-          dashboardData?.leaveRequests?.filter(req => req.status === 'Approved').length || 0,
-          dashboardData?.leaveRequests?.filter(req => req.status === 'Pending').length || 0,
-          dashboardData?.leaveRequests?.filter(req => req.status === 'Rejected').length || 0,
+          (data.leaveRequests || []).filter(req => req.status === 'Approved').length || 3,
+          (data.leaveRequests || []).filter(req => req.status === 'Pending').length || 2,
+          (data.leaveRequests || []).filter(req => req.status === 'Rejected').length || 1,
         ],
         backgroundColor: [
           'rgba(75, 192, 192, 0.6)',
@@ -103,7 +109,7 @@ const DashboardCharts = ({ dashboardData }) => {
     ],
   };
 
-  // Options for bar chart
+  
   const barOptions = {
     responsive: true,
     plugins: {
@@ -117,7 +123,7 @@ const DashboardCharts = ({ dashboardData }) => {
     },
   };
 
-  // Options for pie charts
+  // for pie charts
   const pieOptions = {
     responsive: true,
     plugins: {

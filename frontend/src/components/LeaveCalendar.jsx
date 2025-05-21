@@ -21,103 +21,145 @@ const LeaveCalendar = () => {
   const fetchTeamLeaves = async () => {
     try {
       setLoading(true);
-      // In a real app, this would fetch from the API with the month as a parameter
-      // const response = await getTeamLeaves(currentMonth.getFullYear(), currentMonth.getMonth() + 1);
-      // setTeamLeaves(response.data);
+      console.log(`Fetching team leaves for year: ${currentMonth.getFullYear()}, month: ${currentMonth.getMonth() + 1}`);
       
-      // Mock data for now - generate some random leaves for the current month
-      const year = currentMonth.getFullYear();
-      const month = currentMonth.getMonth();
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      // Fetch data from the API
+      const response = await getTeamLeaves(currentMonth.getFullYear(), currentMonth.getMonth() + 1);
+      console.log('API response:', response);
       
-      const mockEmployees = [
-        'John Doe', 'Jane Smith', 'Michael Johnson', 'Emily Davis', 
-        'Robert Wilson', 'Sarah Brown', 'David Miller', 'Lisa Taylor'
-      ];
-      
-      const leaveTypes = ['Annual Leave', 'Sick Leave', 'Personal Leave'];
-      
-      const mockLeaves = [];
-      
-      // Generate 10-15 random leaves
-      const leaveCount = 10 + Math.floor(Math.random() * 6);
-      
-      for (let i = 1; i <= leaveCount; i++) {
-        const employeeName = mockEmployees[Math.floor(Math.random() * mockEmployees.length)];
-        const leaveType = leaveTypes[Math.floor(Math.random() * leaveTypes.length)];
-        
-        // Random start day between 1 and daysInMonth - 5
-        const startDay = 1 + Math.floor(Math.random() * (daysInMonth - 5));
-        
-        // Random duration between 1 and 5 days
-        const duration = 1 + Math.floor(Math.random() * 5);
-        const endDay = Math.min(startDay + duration - 1, daysInMonth);
-        
-        mockLeaves.push({
-          id: i,
-          employeeName,
-          startDate: formatDate(year, month, startDay),
-          endDate: formatDate(year, month, endDay),
-          leaveType
-        });
+      // If there's an error in the response, handle it
+      if (response.data && response.data.error) {
+        throw new Error(response.data.error);
       }
       
-      setTeamLeaves(mockLeaves);
-      setError('');
+      if (response && response.data && Array.isArray(response.data)) {
+        console.log('Team leaves data:', response.data);
+        
+        // Process the data
+        const formattedLeaves = response.data.map(leave => {
+          // Safely parse dates
+          let startDate, endDate;
+          
+          try {
+            startDate = new Date(leave.startDate);
+            endDate = new Date(leave.endDate);
+            
+            // Check if dates are valid
+            if (isNaN(startDate.getTime())) {
+              console.warn(`Invalid startDate for leave ${leave.id}: ${leave.startDate}`);
+              startDate = new Date(); // Fallback to current date
+            }
+            
+            if (isNaN(endDate.getTime())) {
+              console.warn(`Invalid endDate for leave ${leave.id}: ${leave.endDate}`);
+              endDate = new Date(); // Fallback to current date
+            }
+          } catch (error) {
+            console.error(`Error parsing dates for leave ${leave.id}:`, error);
+            startDate = new Date();
+            endDate = new Date();
+          }
+          
+          return {
+            id: leave.id,
+            employeeName: leave.employeeName || 'Unknown',
+            startDate: startDate,
+            endDate: endDate,
+            leaveType: leave.leaveType || 'Annual Leave'
+          };
+        });
+        
+        console.log('Formatted leaves:', formattedLeaves);
+        setTeamLeaves(formattedLeaves);
+        setError('');
+      } else {
+        // If no data, show empty state
+        setTeamLeaves([]);
+        setError('No leave data available for this month.');
+      }
     } catch (error) {
       console.error('Error fetching team leaves:', error);
-      setError('Failed to load team leave data');
+      setTeamLeaves([]);
+      setError('Unable to fetch leave data. Please try again later.');
     } finally {
       setLoading(false);
     }
   };
   
+
+  
   const fetchEmployees = async () => {
     try {
-      // In a real app, this would fetch from the API
-      // const response = await getEmployees();
-      // setEmployees(response.data);
-      
-      // Mock data for now
-      setEmployees([
-        { id: 1, name: 'John Doe' },
-        { id: 2, name: 'Jane Smith' },
-        { id: 3, name: 'Michael Johnson' },
-        { id: 4, name: 'Emily Davis' },
-        { id: 5, name: 'Robert Wilson' },
-        { id: 6, name: 'Sarah Brown' },
-        { id: 7, name: 'David Miller' },
-        { id: 8, name: 'Lisa Taylor' }
-      ]);
+      const response = await getEmployees();
+      if (response && response.data && Array.isArray(response.data)) {
+        setEmployees(response.data);
+      } else {
+        setEmployees([]);
+        console.error('No employee data returned from API');
+      }
     } catch (error) {
       console.error('Error fetching employees:', error);
+      setEmployees([]);
     }
   };
 
-  // Get days in month
+  
   const getDaysInMonth = (date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
   };
 
-  // Get day of week for first day of month (0 = Sunday, 6 = Saturday)
+  
   const getFirstDayOfMonth = (date) => {
     return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
   };
 
-  // Format date as YYYY-MM-DD
   const formatDate = (year, month, day) => {
     return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   };
 
-  // Check if a date has any leaves
+  
   const getLeavesForDate = (year, month, day) => {
-    const dateStr = formatDate(year, month, day);
+    
+    const currentDate = new Date(year, month, day);
+    const currentDateTimestamp = currentDate.getTime();
+    
     return teamLeaves.filter(leave => {
-      const start = new Date(leave.startDate);
-      const end = new Date(leave.endDate);
-      const current = new Date(dateStr);
-      return current >= start && current <= end && 
-        (selectedEmployee === 'all' || leave.employeeName === selectedEmployee);
+      try {
+        
+        const startDate = leave.startDate;
+        const endDate = leave.endDate;
+        
+        if (!startDate || !endDate) {
+          console.warn('Missing date in leave record:', leave);
+          return false;
+        }
+        
+        // Create date objects without time component for comparison
+        const startDateNoTime = new Date(
+          startDate.getFullYear(), 
+          startDate.getMonth(), 
+          startDate.getDate()
+        );
+        
+        const endDateNoTime = new Date(
+          endDate.getFullYear(), 
+          endDate.getMonth(), 
+          endDate.getDate()
+        );
+        
+        // Simple date comparison (ignoring time)
+        const isWithinLeavePeriod = 
+          currentDateTimestamp >= startDateNoTime.getTime() && 
+          currentDateTimestamp <= endDateNoTime.getTime();
+        
+        // Check if the employee matches the selected filter
+        const isEmployeeMatch = selectedEmployee === 'all' || leave.employeeName === selectedEmployee;
+        
+        return isWithinLeavePeriod && isEmployeeMatch;
+      } catch (error) {
+        console.error('Error processing leave dates:', error);
+        return false;
+      }
     });
   };
 
@@ -176,6 +218,11 @@ const LeaveCalendar = () => {
             {leave.employeeName}
           </div>
         ))}
+        {leavesForDay.length > 0 && (
+          <div className="text-xs text-gray-500 mt-1">
+            {leavesForDay.length} {leavesForDay.length === 1 ? 'person' : 'people'} on leave
+          </div>
+        )}
       </div>
     );
   }
@@ -219,24 +266,30 @@ const LeaveCalendar = () => {
           className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
         >
           <option value="all">All Employees</option>
-          {employees.map(employee => (
-            <option key={employee.id} value={employee.name}>
-              {employee.name}
-            </option>
-          ))}
+          {employees && employees.length > 0 ? (
+            employees.map(employee => (
+              <option key={employee.id} value={employee.name || employee.fullName || `${employee.firstName} ${employee.lastName}`}>
+                {employee.name || employee.fullName || `${employee.firstName} ${employee.lastName}`}
+              </option>
+            ))
+          ) : (
+            <option disabled>No employees available</option>
+          )}
         </select>
       </div>
       
-      {error ? (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
-        </div>
-      ) : loading ? (
+      {loading ? (
         <div className="flex justify-center items-center h-60">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
       ) : (
         <>
+          {error && (
+            <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded mb-4 text-center">
+              {error}
+            </div>
+          )}
+          
           <div className="grid grid-cols-7 gap-px">
             {/* Day headers */}
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
@@ -248,6 +301,15 @@ const LeaveCalendar = () => {
             {/* Calendar days */}
             {calendarDays}
           </div>
+          
+          {teamLeaves.length === 0 && !loading && !error && (
+            <div className="text-center py-6 text-gray-500">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <p className="mt-2">No leave requests found for this month.</p>
+            </div>
+          )}
           
           {/* Legend */}
           <div className="mt-4 flex flex-wrap gap-4">

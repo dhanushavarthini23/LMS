@@ -34,10 +34,10 @@ export const AuthProvider = ({ children }) => {
       const { token } = response.data;
       localStorage.setItem('token', token);
       setAuthData({ token });
-      return true; // ✅ Login succeeded
+      return true; 
     } catch (error) {
       console.error('Login failed', error);
-      return false; // ❌ Login failed
+      return false; 
     }
   };
 
@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   if (loading) {
-    return <div>Loading...</div>; // Show loading spinner or message while checking auth state
+    return <div>Loading...</div>; 
   }
 
   return (

@@ -42,20 +42,18 @@ const LeaveRequestsPage = () => {
 
   const handleLeaveRequestSuccess = () => {
     setShowForm(false);
-    fetchData(); // Refresh the data
+    fetchData(); 
   };
 
   if (!authData?.token) {
     return <Navigate to="/login" />;
   }
 
-  // Format date for display
+  // Format date 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString();
   };
-
-  // Get status badge color
   const getStatusBadgeColor = (status) => {
     switch (status) {
       case 'Approved':
@@ -156,7 +154,7 @@ const LeaveRequestsPage = () => {
                     const start = new Date(req.startDate);
                     const end = new Date(req.endDate);
                     const diffTime = Math.abs(end - start);
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end days
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; 
                     
                     return (
                       <tr key={req.id} className="hover:bg-gray-50">

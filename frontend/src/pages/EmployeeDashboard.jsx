@@ -21,7 +21,7 @@ const EmployeeDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [userName, setUserName] = useState('');
 
-  // Define fetchDashboardData outside useEffect so it can be reused
+  
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
@@ -32,6 +32,7 @@ const EmployeeDashboard = () => {
       
       // Fetch leave balance
       const balanceResponse = await getLeaveBalance();
+      console.log('Leave balance response:', balanceResponse.data);
       setLeaveBalance(balanceResponse.data.leaveBalance);
       
       setError('');
@@ -48,7 +49,7 @@ const EmployeeDashboard = () => {
       // Get user name from token
       try {
         const decoded = jwtDecode(authData.token);
-        console.log('Decoded token:', decoded); // Log to see the structure
+        console.log('Decoded token:', decoded); 
         setUserName(decoded.name || decoded.username || 'Employee');
       } catch (error) {
         console.error('Error decoding token:', error);
@@ -66,7 +67,7 @@ const EmployeeDashboard = () => {
 
   const handleLeaveRequestSuccess = () => {
     setShowLeaveForm(false);
-    // Refresh dashboard data
+    
     fetchDashboardData();
   };
 
@@ -167,32 +168,30 @@ const EmployeeDashboard = () => {
               {/* Dashboard Summary Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 {/* Leave Balance Card */}
-                {leaveBalance && (
-                  <div className="bg-white p-4 rounded shadow">
-                    <h2 className="text-lg font-semibold mb-2">Leave Balance</h2>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span>Annual Leave:</span>
-                        <span className="font-bold">{leaveBalance.annual || 0} days</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Sick Leave:</span>
-                        <span className="font-bold">{leaveBalance.sick || 0} days</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Personal Leave:</span>
-                        <span className="font-bold">{leaveBalance.personal || 0} days</span>
-                      </div>
+                <div className="bg-white p-4 rounded shadow">
+                  <h2 className="text-lg font-semibold mb-2">Leave Balance</h2>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Annual Leave:</span>
+                      <span className="font-bold">{leaveBalance?.annual || 20} days</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Sick Leave:</span>
+                      <span className="font-bold">{leaveBalance?.sick || 10} days</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Personal Leave:</span>
+                      <span className="font-bold">{leaveBalance?.personal || 5} days</span>
                     </div>
                   </div>
-                )}
+                </div>
 
                 {/* Pending Requests Card */}
                 <div className="bg-white p-4 rounded shadow">
                   <h2 className="text-lg font-semibold mb-2">Pending Requests</h2>
-                  {dashboardData?.leaveRequests?.filter(req => req.status === 'Pending').length > 0 ? (
+                  {(dashboardData?.leaveRequests || []).filter(req => req.status === 'Pending').length > 0 ? (
                     <div className="text-yellow-500 font-bold text-2xl">
-                      {dashboardData.leaveRequests.filter(req => req.status === 'Pending').length}
+                      {(dashboardData?.leaveRequests || []).filter(req => req.status === 'Pending').length}
                     </div>
                   ) : (
                     <div className="text-gray-500">No pending requests</div>
@@ -202,9 +201,9 @@ const EmployeeDashboard = () => {
                 {/* Approved Requests Card */}
                 <div className="bg-white p-4 rounded shadow">
                   <h2 className="text-lg font-semibold mb-2">Approved Requests</h2>
-                  {dashboardData?.leaveRequests?.filter(req => req.status === 'Approved').length > 0 ? (
+                  {(dashboardData?.leaveRequests || []).filter(req => req.status === 'Approved').length > 0 ? (
                     <div className="text-green-500 font-bold text-2xl">
-                      {dashboardData.leaveRequests.filter(req => req.status === 'Approved').length}
+                      {(dashboardData?.leaveRequests || []).filter(req => req.status === 'Approved').length}
                     </div>
                   ) : (
                     <div className="text-gray-500">No approved requests</div>

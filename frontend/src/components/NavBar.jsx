@@ -60,8 +60,6 @@ const NavBar = () => {
                     Leave Requests
                   </Link>
                   
-                  {/* Admin role removed as it doesn't exist in the backend */}
-                  
                   {userRole === 'HR' && (
                     <Link 
                       to="/hr-dashboard" 

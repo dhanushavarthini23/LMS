@@ -28,8 +28,16 @@ export class Employee {
 
   @Column({ nullable: true })
   username?: string;
+  
   @Column({ nullable: true })  // Allow NULLs temporarily
   password!: string;           // Add password field
+  
+  @Column({ 
+    type: 'enum', 
+    enum: ['IT', 'HR', 'Finance', 'Marketing', 'Operations', 'Sales', 'Engineering', 'Customer Support'],
+    default: 'IT'
+  })
+  department!: string;
 
   @OneToMany(() => LeaveRequest, (leaveRequest) => leaveRequest.employee)
   leaveRequests!: LeaveRequest[];

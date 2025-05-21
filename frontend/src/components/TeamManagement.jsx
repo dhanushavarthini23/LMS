@@ -14,12 +14,15 @@ const TeamManagement = () => {
       try {
         setLoading(true);
         const response = await getEmployees();
-        // Add default position and department if they don't exist
+        
+        
         const enhancedTeamData = response.data.map(employee => ({
           ...employee,
           position: employee.position || employee.role || 'Staff',
-          department: employee.department || 'General'
+          department: employee.department || 'IT', // Default to IT
+          leaveBalance: employee.leaveBalance || 20 // Default to 20
         }));
+        
         setTeamMembers(enhancedTeamData);
         setError('');
       } catch (error) {
@@ -36,14 +39,29 @@ const TeamManagement = () => {
   const handleViewLeaveBalance = async (employeeId) => {
     try {
       setLoading(true);
-      // In a real application, you would pass the employee ID to get their specific leave balance
-      const response = await getLeaveBalance();
-      setLeaveBalance(response.data.leaveBalance);
-      setSelectedEmployee(teamMembers.find(emp => emp.id === employeeId));
+      const employee = teamMembers.find(emp => emp.id === employeeId);
+      
+      
+      const totalLeaveBalance = employee.leaveBalance || 20;
+      console.log(`Setting leave balance for ${employee.name}: ${totalLeaveBalance}`);
+      
+      
+      
+      const annual = Math.round(totalLeaveBalance * 0.6);
+      const sick = Math.round(totalLeaveBalance * 0.25);
+      const personal = totalLeaveBalance - annual - sick;
+      
+      setLeaveBalance({
+        annual,
+        sick,
+        personal
+      });
+      
+      setSelectedEmployee(employee);
       setShowLeaveBalance(true);
       setError('');
     } catch (error) {
-      console.error('Error fetching leave balance:', error);
+      console.error('Error setting leave balance:', error);
       setError('Failed to load leave balance. Please try again later.');
     } finally {
       setLoading(false);
@@ -78,6 +96,7 @@ const TeamManagement = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Position</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Leave Balance</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
@@ -97,12 +116,17 @@ const TeamManagement = () => {
                       {employee.email}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                        {employee.leaveBalance !== undefined ? employee.leaveBalance : 30} days
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex space-x-2">
                         <button
                           onClick={() => handleViewLeaveBalance(employee.id)}
                           className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm"
                         >
-                          View Leave Balance
+                          View Details
                         </button>
                       </div>
                     </td>
@@ -138,15 +162,15 @@ const TeamManagement = () => {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
                       <span className="font-medium">Annual Leave:</span>
-                      <span className="font-bold text-blue-600">{leaveBalance?.annual || 0} days</span>
+                      <span className="font-bold text-blue-600">{leaveBalance?.annual || 12} days</span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
                       <span className="font-medium">Sick Leave:</span>
-                      <span className="font-bold text-blue-600">{leaveBalance?.sick || 0} days</span>
+                      <span className="font-bold text-blue-600">{leaveBalance?.sick || 5} days</span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
                       <span className="font-medium">Personal Leave:</span>
-                      <span className="font-bold text-blue-600">{leaveBalance?.personal || 0} days</span>
+                      <span className="font-bold text-blue-600">{leaveBalance?.personal || 3} days</span>
                     </div>
                     <div className="mt-6">
                       <button

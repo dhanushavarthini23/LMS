@@ -11,7 +11,7 @@ const employeeRoutes: ServerRoute[] = [
     path: '/api/employees',
     handler: getEmployees,
     options: {
-      auth: 'jwt' // Optional: enable if auth is in place
+      auth: { mode: 'try' } // Allow both authenticated and unauthenticated requests
     },
   },
   {
@@ -19,7 +19,7 @@ const employeeRoutes: ServerRoute[] = [
     path: '/api/employees',
     handler: createEmployee,
     options: {
-      auth: 'jwt' // Optional: enable if only HR should add
+      auth: 'jwt' 
     },
   },
   {
@@ -27,7 +27,7 @@ const employeeRoutes: ServerRoute[] = [
     path: '/api/employees/{id}',
     handler: getEmployeeProfile,
     options: {
-      auth: 'jwt' // Optional: restrict to self or manager
+      auth: 'jwt' 
     },
   },
 ];

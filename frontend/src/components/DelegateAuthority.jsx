@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getEmployees } from '../api/api';
+import { getEmployees, getDelegations, createDelegation, cancelDelegation } from '../api/api';
 
 const DelegateAuthority = () => {
   const [teamMembers, setTeamMembers] = useState([]);
@@ -14,87 +14,95 @@ const DelegateAuthority = () => {
   const [delegations, setDelegations] = useState([]);
 
   useEffect(() => {
-    const fetchTeamMembers = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await getEmployees();
-        // Filter to only show employees who could be delegates (e.g., senior team members)
-        const potentialDelegates = response.data.filter(emp => 
+        
+        // Fetch potential delegates
+        const employeesResponse = await getEmployees();
+        const potentialDelegates = employeesResponse.data.filter(emp => 
+          emp.role === 'Manager' || // Include managers
           emp.position?.toLowerCase().includes('senior') || 
           emp.position?.toLowerCase().includes('lead')
         );
         setTeamMembers(potentialDelegates);
+        
+        // Fetch existing delegations
+        const delegationsResponse = await getDelegations();
+        if (delegationsResponse.data) {
+          setDelegations(delegationsResponse.data);
+        }
+        
         setError('');
       } catch (error) {
-        console.error('Error fetching team members:', error);
-        setError('Failed to load team members. Please try again later.');
+        console.error('Error fetching data:', error);
+        setError('Failed to load data. Please try again later.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchTeamMembers();
-    
-    // Mock existing delegations
-    setDelegations([
-      {
-        id: 1,
-        delegateName: 'Jane Smith',
-        startDate: '2023-06-01',
-        endDate: '2023-06-15',
-        reason: 'Annual leave',
-        status: 'Active'
-      },
-      {
-        id: 2,
-        delegateName: 'Michael Johnson',
-        startDate: '2023-05-10',
-        endDate: '2023-05-20',
-        reason: 'Conference attendance',
-        status: 'Completed'
-      }
-    ]);
+    fetchData();
   }, []);
 
-  const handleDelegateAuthority = () => {
+  const handleDelegateAuthority = async () => {
     if (!selectedEmployee || !delegationReason) {
       setError('Please select an employee and provide a reason for delegation.');
       return;
     }
-
-    // In a real application, this would make an API call
-    const selectedEmployeeObj = teamMembers.find(emp => emp.id === selectedEmployee);
+    const selectedEmployeeObj = teamMembers.find(emp => emp.id === selectedEmployee);try {
+      setLoading(true);
+      
+      // Call the API to create a delegation
     
-    const newDelegation = {
-      id: delegations.length + 1,
-      delegateName: selectedEmployeeObj?.name || 'Unknown',
-      startDate: delegationPeriod.startDate,
-      endDate: delegationPeriod.endDate,
-      reason: delegationReason,
-      status: 'Pending'
-    };
-
-    setDelegations([...delegations, newDelegation]);
-    
-    // Reset form
-    setSelectedEmployee('');
-    setDelegationReason('');
-    setDelegationPeriod({
-      startDate: new Date().toISOString().split('T')[0],
-      endDate: new Date(new Date().setDate(new Date().getDate() + 7)).toISOString().split('T')[0]
-    });
-    
-    // Show success message
-    alert('Authority delegation request submitted successfully!');
+  const response = await createDelegation(
+        selectedEmployee,
+        delegationPeriod.startDate,
+        delegationPeriod.endDate,
+        delegationReason
+      );
+      
+      if (response.data) {
+        // Add the new delegation to the list
+        setDelegations([response.data, ...delegations]);
+        
+        // Reset form
+        setSelectedEmployee('');
+        setDelegationReason('');
+        setDelegationPeriod({
+          startDate: new Date().toISOString().split('T')[0],
+          endDate: new Date(new Date().setDate(new Date().getDate() + 7)).toISOString().split('T')[0]
+        });
+        alert('Authority delegation request submitted successfully!');
+      }
+    } catch (error) {
+      console.error('Error creating delegation:', error);
+      setError('Failed to create delegation. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleCancelDelegation = (id) => {
-    // In a real application, this would make an API call
+  const handleCancelDelegation = async (id) => {
     const updatedDelegations = delegations.map(delegation => 
-      delegation.id === id ? { ...delegation, status: 'Cancelled' } : delegation
-    );
-    
-    setDelegations(updatedDelegations);
+          delegation.id === id ? { ...delegation, status: 'Cancelled' } : delegation
+        );
+    try {
+      setLoading(true);
+      
+      // Call the API to cancel the delegation
+      const response = await cancelDelegation(id);
+      
+      if (response.data) {
+        // Update the delegation in the list
+                setDelegations(updatedDelegations);
+      }
+    } catch (error) {
+      console.error('Error cancelling delegation:', error);
+      setError('Failed to cancel delegation. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Format date for display

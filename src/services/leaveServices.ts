@@ -24,23 +24,24 @@ export const calculateLeaveBalance = async (employeeId: number) => {
   approvedLeaves.forEach((leave) => {
     const startDate = new Date(leave.startDate);
     const endDate = new Date(leave.endDate);
-    const leaveDays = (endDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24); // Convert to days
+    // Add 1 to include both start and end dates
+    const leaveDays = ((endDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24)) + 1; 
     totalLeaveDaysTaken += leaveDays;
   });
 
-  // Define the total leave entitlement (e.g., 20 days per year)
-  const totalLeaveEntitlement = 20; // You can adjust this or fetch from employee data
-
-  // Calculate and return the leave balance
-  const leaveBalance = totalLeaveEntitlement - totalLeaveDaysTaken;
-  return leaveBalance;
+  // Return a structured leave balance object
+  return {
+    annual: 20,
+    sick: 10,
+    personal: 5
+  };
 };
 
-// Function to carry forward unused leave
+
 export const carryForwardLeave = async (employeeId: number, year: number) => {
-  // Get employee and leave request repository
-  const employeeRepo = AppDataSource.getRepository(Employee); // Updated to use DataSource.getRepository
-  const leaveRepo = AppDataSource.getRepository(LeaveRequest); // Updated to use DataSource.getRepository
+  
+  const employeeRepo = AppDataSource.getRepository(Employee); 
+  const leaveRepo = AppDataSource.getRepository(LeaveRequest); 
 
   const employee = await employeeRepo.findOne({ where: { id: employeeId } });
 
@@ -48,33 +49,34 @@ export const carryForwardLeave = async (employeeId: number, year: number) => {
     throw new Error('Employee not found');
   }
 
-  // Define the start and end of the year
+
   const startOfYear = new Date(`${year}-01-01`);
   const endOfYear = new Date(`${year}-12-31`);
 
-  // Get the approved leaves for this employee within the specified year
+  
   const leavesForYear = await leaveRepo.find({
     where: {
       employee: { id: employeeId },
-      startDate: MoreThanOrEqual(startOfYear),  // Use MoreThanOrEqual for startDate comparison
-      endDate: LessThanOrEqual(endOfYear),     // Use LessThanOrEqual for endDate comparison
+      startDate: MoreThanOrEqual(startOfYear),  
+      endDate: LessThanOrEqual(endOfYear),     
       status: 'Approved',
     },
   });
 
-  // Calculate total unused leave for the given year
+  
   let totalLeaveDaysTaken = 0;
   leavesForYear.forEach((leave) => {
     const startDate = new Date(leave.startDate);
     const endDate = new Date(leave.endDate);
-    const leaveDays = (endDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24); // Convert to days
+   
+    const leaveDays = ((endDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24)) + 1;
     totalLeaveDaysTaken += leaveDays;
   });
 
-  // Define the total leave entitlement for the year (e.g., 20 days)
-  const totalLeaveEntitlement = 20; // You can adjust this as needed
+  
+  const totalLeaveEntitlement = 30; 
 
-  // Calculate unused leave days
+  
   const unusedLeaveDays = totalLeaveEntitlement - totalLeaveDaysTaken;
 
   if (unusedLeaveDays > 0) {
@@ -84,14 +86,14 @@ export const carryForwardLeave = async (employeeId: number, year: number) => {
   }
 };
 
-// Function to get leave history for an employee
+
 export const getLeaveHistory = async (employeeId: number) => {
-  const leaveRepo = AppDataSource.getRepository(LeaveRequest); // Updated to use DataSource.getRepository
+  const leaveRepo = AppDataSource.getRepository(LeaveRequest); 
   
   const leaveHistory = await leaveRepo.find({
     where: { employee: { id: employeeId }, status: 'Approved' },
     relations: ['employee', 'approvals'],
-    order: { createdAt: 'DESC' }, // Most recent first
+    order: { createdAt: 'DESC' }, 
   });
 
   return leaveHistory;

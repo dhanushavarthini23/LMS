@@ -5,7 +5,7 @@ import bcrypt from 'bcrypt';
 import AppDataSource from '../data-source';
 import { Employee } from '../entities/Employee';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_key';
+const JWT_SECRET = process.env.JWT_SECRET || 'sD7@8kj1!ld$gF30P1wz';
 
 export class AuthController {
   static async login(req: Request, h: ResponseToolkit) {
@@ -26,9 +26,11 @@ export class AuthController {
     const payload = {
       id: user.id,
       role: user.role,
+      name: user.name,
+      username: user.username
     };
 
-    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
 
     return h.response({ token }).code(200);
   }

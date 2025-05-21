@@ -17,7 +17,7 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Decode JWT to get user role
+    // Decode JWT to get user 
     if (authData?.token) {
       try {
         const base64Url = authData.token.split('.')[1];

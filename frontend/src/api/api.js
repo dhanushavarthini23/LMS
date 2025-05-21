@@ -1,16 +1,12 @@
 import axios from 'axios';
 
 const API_URL = 'http://localhost:5000'; // Backend URL
-
-// Create axios instance with default config
 const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
-
-// Add interceptor to include auth token in requests
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -26,6 +22,10 @@ api.interceptors.request.use(
 export const login = async (username, password) => {
   try {
     const response = await axios.post(`${API_URL}/login`, { username, password });
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+    }
+
     return response;
   } catch (error) {
     throw error.response ? error.response.data : 'Login failed';
@@ -33,7 +33,7 @@ export const login = async (username, password) => {
 };
 
 // Leave Requests
-export const getLeaveRequests = async (token) => {
+export const getLeaveRequests = async () => {
   return api.get('/api/leave-requests');
 };
 
@@ -52,6 +52,10 @@ export const getLeaveBalance = async () => {
 // For managers and HR
 export const getPendingLeaveRequests = async () => {
   return api.get('/api/leave-requests/pending');
+};
+
+export const getAllLeaveRequests = async () => {
+  return api.get('/api/leave-requests/all');
 };
 
 export const approveLeaveRequestManager = async (leaveId, decision, comment = '') => {
@@ -91,6 +95,24 @@ export const getNotifications = async () => {
   return api.get('/api/notifications');
 };
 
+// Delegations
+export const getDelegations = async () => {
+  return api.get('/api/delegations');
+};
+
+export const createDelegation = async (delegateId, startDate, endDate, reason) => {
+  return api.post('/api/delegations', {
+    delegateId,
+    startDate,
+    endDate,
+    reason
+  });
+};
+
+export const cancelDelegation = async (delegationId) => {
+  return api.put(`/api/delegations/${delegationId}/cancel`);
+};
+
 export const markNotificationAsRead = async (id) => {
   return api.post(`/api/notifications/${id}/read`);
 };
@@ -101,7 +123,10 @@ export const markAllNotificationsAsRead = async () => {
 
 // Team Leave Calendar
 export const getTeamLeaves = async (year, month) => {
-  return api.get(`/api/leaves/team?year=${year}&month=${month}`);
+  console.log(`API call: /api/leaves/team with year=${year}, month=${month}`);
+  return api.get(`/api/leaves/team`, {
+    params: { year, month }
+  });
 };
 
 // User Profile

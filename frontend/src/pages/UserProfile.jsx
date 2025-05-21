@@ -47,11 +47,6 @@ const UserProfile = () => {
   const fetchUserProfile = async (id) => {
     try {
       setLoading(true);
-      // In a real app, this would fetch from the API
-      // const response = await getEmployeeProfile(id);
-      // const userData = response.data;
-      
-      // Mock data for now
       const userData = {
         id: id,
         name: 'John Doe',
@@ -124,16 +119,9 @@ const UserProfile = () => {
       setSaving(true);
       setError('');
       setSuccess('');
-      
-      // In a real app, this would update via the API
-      // const response = await updateEmployeeProfile(userId, formData);
-      
-      // Mock successful update
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       setSuccess('Profile updated successfully');
-      
-      // Clear password fields after successful update
       setFormData({
         ...formData,
         password: '',

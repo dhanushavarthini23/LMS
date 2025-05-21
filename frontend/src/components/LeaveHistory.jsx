@@ -11,11 +11,20 @@ const LeaveHistory = ({ limit }) => {
       try {
         setLoading(true);
         const response = await getLeaveHistory();
-        setHistory(response.data);
+        
+        
+        if (Array.isArray(response.data)) {
+          setHistory(response.data);
+        } else {
+          console.warn('Leave history response is not an array:', response.data);
+          setHistory([]); //fallback
+        }
+        
         setError('');
       } catch (error) {
         console.error('Error fetching leave history:', error);
         setError('Failed to load leave history. Please try again later.');
+        setHistory([]); 
       } finally {
         setLoading(false);
       }
@@ -24,18 +33,18 @@ const LeaveHistory = ({ limit }) => {
     fetchHistory();
   }, []);
 
-  // Format date for display
+  
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString();
   };
 
-  // Calculate duration between two dates in days
+  
   const calculateDuration = (startDate, endDate) => {
     const start = new Date(startDate);
     const end = new Date(endDate);
     const diffTime = Math.abs(end - start);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end days
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; 
     return `${diffDays} day${diffDays !== 1 ? 's' : ''}`;
   };
 

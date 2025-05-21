@@ -14,7 +14,7 @@ const LeaveForm = ({ onSuccess }) => {
     setSubmitError('');
     
     try {
-      // Format the data according to the backend API
+      
       const formattedData = {
         startDate: data.startDate,
         endDate: data.endDate,
@@ -24,7 +24,7 @@ const LeaveForm = ({ onSuccess }) => {
       
       await createLeaveRequest(formattedData);
       
-      // Reset form and show success message
+     
       reset();
       if (onSuccess && typeof onSuccess === 'function') {
         onSuccess();
@@ -58,9 +58,10 @@ const LeaveForm = ({ onSuccess }) => {
             className="mt-1 block w-full p-2 border rounded-md"
           >
             <option value="">Select leave type</option>
-            <option value="sick">Sick Leave</option>
-            <option value="vacation">Vacation</option>
-            <option value="personal">Personal Leave</option>
+            <option value="Annual Leave">Annual Leave</option>
+            <option value="Sick Leave">Sick Leave</option>
+            <option value="Personal Leave">Personal Leave</option>
+            <option value="Other">Other</option>
           </select>
           {errors.leaveType && <p className="text-red-500 text-sm">{errors.leaveType.message}</p>}
         </div>

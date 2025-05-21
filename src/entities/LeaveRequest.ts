@@ -23,6 +23,13 @@ export class LeaveRequest {
 
   @Column()
   reason!: string;
+  
+  @Column({
+    type: 'enum',
+    enum: ['Annual Leave', 'Sick Leave', 'Personal Leave', 'Other'],
+    default: 'Annual Leave'
+  })
+  leaveType!: 'Annual Leave' | 'Sick Leave' | 'Personal Leave' | 'Other';
 
   @Column({
     type: 'enum',

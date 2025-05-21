@@ -2,20 +2,24 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { jwtDecode } from 'jwt-decode';
-import { getPendingLeaveRequests, approveLeaveRequestManager, getDashboardData, getEmployees } from '../api/api';
+import { getPendingLeaveRequests, approveLeaveRequestManager, getDashboardData, getEmployees, getAllLeaveRequests } from '../api/api';
 import TeamManagement from '../components/TeamManagement';
 import LeaveReports from '../components/LeaveReports';
 import DelegateAuthority from '../components/DelegateAuthority';
 import LeaveCalendar from '../components/LeaveCalendar';
+import LeaveForm from '../components/LeaveForm';
+import EmployeeForm from '../components/EmployeeForm';
 
 const ManagerDashboard = () => {
   const { authData, logout } = useContext(AuthContext);
   const [pendingRequests, setPendingRequests] = useState([]);
+  const [leaveHistory, setLeaveHistory] = useState([]);
   const [dashboardData, setDashboardData] = useState(null);
   const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [showAddEmployee, setShowAddEmployee] = useState(false);
   const [userName, setUserName] = useState('');
   const navigate = useNavigate();
 
@@ -24,7 +28,7 @@ const ManagerDashboard = () => {
     if (authData?.token) {
       try {
         const decoded = jwtDecode(authData.token);
-        console.log('Decoded token:', decoded); // Log to see the structure
+        console.log('Decoded token:', decoded); 
         setUserName(decoded.name || decoded.username || 'Manager');
       } catch (error) {
         console.error('Error decoding token:', error);
@@ -36,24 +40,59 @@ const ManagerDashboard = () => {
       try {
         setLoading(true);
         
-        // Fetch pending leave requests
-        const pendingResponse = await getPendingLeaveRequests();
-        setPendingRequests(pendingResponse.data);
-        
         // Fetch dashboard data
         const dashboardResponse = await getDashboardData();
-        setDashboardData(dashboardResponse.data);
+        console.log('Manager Dashboard Response:', dashboardResponse);
+        const data = dashboardResponse.data;
         
-        // Fetch team members
-        const teamResponse = await getEmployees();
-        // Add default position and department if they don't exist
-        const enhancedTeamData = teamResponse.data.map(employee => ({
-          ...employee,
-          position: employee.position || employee.role || 'Staff',
-          department: employee.department || 'General',
-          onLeave: employee.onLeave || false
-        }));
-        setTeamMembers(enhancedTeamData);
+        
+        if (!data) {
+          console.error('No data returned from dashboard API');
+          setError('Failed to load dashboard data. Please try again later.');
+          setLoading(false);
+          return;
+        }
+        
+        console.log('Processing manager dashboard data:', data);
+        if (data.pendingRequests) {
+          setPendingRequests(data.pendingRequests);
+        } else if (data.managerDashboardData && data.managerDashboardData.pendingRequests) {
+          setPendingRequests(data.managerDashboardData.pendingRequests);
+        } else {
+          setPendingRequests([]);
+        }
+        try {
+          const historyResponse = await getAllLeaveRequests();
+          if (historyResponse.data) {
+            setLeaveHistory(historyResponse.data);
+          }
+        } catch (error) {
+          console.error('Error fetching leave history:', error);
+        }
+        const approvedCount = data.approvedThisMonth || 
+                             (data.managerDashboardData && data.managerDashboardData.approvedThisMonth) || 0;
+        
+        setDashboardData({
+          approvedThisMonth: approvedCount
+        });
+        
+        // Set team members with enhanced data
+        const teamMembersData = data.teamMembers || 
+                               (data.managerDashboardData && data.managerDashboardData.teamMembers) || [];
+        
+        if (Array.isArray(teamMembersData)) {
+          const enhancedTeamData = teamMembersData.map(employee => ({
+            ...employee,
+            position: employee.position || employee.role || 'Staff',
+            department: employee.department || 'IT',
+            onLeave: employee.onLeave || false,
+            leaveBalance: employee.leaveBalance !== undefined ? employee.leaveBalance : 20 // Default to 20
+          }));
+          setTeamMembers(enhancedTeamData);
+        } else {
+          console.warn('No team members data or invalid format:', teamMembersData);
+          setTeamMembers([]);
+        }
         
         setError('');
       } catch (error) {
@@ -73,9 +112,24 @@ const ManagerDashboard = () => {
     try {
       await approveLeaveRequestManager(id, true);
       
-      // Refresh the pending requests
-      const response = await getPendingLeaveRequests();
-      setPendingRequests(response.data);
+      // Refresh the dashboard data
+      const dashboardResponse = await getDashboardData();
+      if (dashboardResponse.data) {
+        const data = dashboardResponse.data;
+        
+        // Set pending requests
+        if (data.pendingRequests) {
+          setPendingRequests(data.pendingRequests);
+        } else if (data.managerDashboardData && data.managerDashboardData.pendingRequests) {
+          setPendingRequests(data.managerDashboardData.pendingRequests);
+        }
+      }
+      
+      // Refresh leave history
+      const historyResponse = await getAllLeaveRequests();
+      if (historyResponse.data) {
+        setLeaveHistory(historyResponse.data);
+      }
     } catch (error) {
       console.error('Error approving leave request:', error);
       setError('Failed to approve leave request. Please try again.');
@@ -85,10 +139,21 @@ const ManagerDashboard = () => {
   const handleReject = async (id) => {
     try {
       await approveLeaveRequestManager(id, false);
-      
-      // Refresh the pending requests
-      const response = await getPendingLeaveRequests();
-      setPendingRequests(response.data);
+      const dashboardResponse = await getDashboardData();
+      if (dashboardResponse.data) {
+        const data = dashboardResponse.data;
+        
+        // Set pending requests
+        if (data.pendingRequests) {
+          setPendingRequests(data.pendingRequests);
+        } else if (data.managerDashboardData && data.managerDashboardData.pendingRequests) {
+          setPendingRequests(data.managerDashboardData.pendingRequests);
+        }
+      }
+      const historyResponse = await getAllLeaveRequests();
+      if (historyResponse.data) {
+        setLeaveHistory(historyResponse.data);
+      }
     } catch (error) {
       console.error('Error rejecting leave request:', error);
       setError('Failed to reject leave request. Please try again.');
@@ -100,7 +165,7 @@ const ManagerDashboard = () => {
     navigate('/login');
   };
 
-  // Format date for display
+  // Formatting the data for display
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString();
@@ -133,6 +198,26 @@ const ManagerDashboard = () => {
             }`}
           >
             Dashboard
+          </button>
+          <button
+            onClick={() => setActiveTab('request')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'request'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Request Leave
+          </button>
+          <button
+            onClick={() => setActiveTab('employees')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'employees'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Employees
           </button>
           <button
             onClick={() => setActiveTab('team')}
@@ -234,6 +319,7 @@ const ManagerDashboard = () => {
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Position</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Leave Balance</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         </tr>
                       </thead>
@@ -251,6 +337,11 @@ const ManagerDashboard = () => {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               {employee.email}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                {employee.leaveBalance !== undefined ? employee.leaveBalance : 30} days
+                              </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -285,6 +376,7 @@ const ManagerDashboard = () => {
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Date</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Date</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                       </thead>
@@ -311,6 +403,16 @@ const ManagerDashboard = () => {
                                 {request.reason || 'No reason provided'}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
+                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                  request.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' : 
+                                  request.status === 'Manager Approved' ? 'bg-blue-100 text-blue-800' :
+                                  request.status === 'Approved' ? 'bg-green-100 text-green-800' :
+                                  'bg-red-100 text-red-800'
+                                }`}>
+                                  {request.status}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
                                 {canApprove ? (
                                   <div className="flex space-x-2">
                                     <button
@@ -328,7 +430,9 @@ const ManagerDashboard = () => {
                                   </div>
                                 ) : (
                                   <span className="text-gray-500 text-sm">
-                                    Waiting for manager approval
+                                    {request.status === 'HR Approved' ? 'Waiting for HR approval' : 
+                                     request.status === 'Manager Approved' ? 'Approved by you' : 
+                                     'Waiting for approval'}
                                   </span>
                                 )}
                               </td>
@@ -340,7 +444,137 @@ const ManagerDashboard = () => {
                   </div>
                 )}
               </div>
+
+              {/* Leave History Section */}
+              <div className="bg-white shadow rounded-lg p-6 mb-6">
+                <h2 className="text-xl font-semibold mb-4">Leave Request History</h2>
+                
+                {leaveHistory.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    No leave request history.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Leave Type</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Date</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Date</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {leaveHistory.map((request) => (
+                          <tr key={request.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {request.employee?.name || 'Unknown'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {request.leaveType || 'N/A'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {formatDate(request.startDate)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {formatDate(request.endDate)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {request.reason || 'No reason provided'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                request.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' : 
+                                request.status === 'Manager Approved' ? 'bg-blue-100 text-blue-800' :
+                                request.status === 'Approved' ? 'bg-green-100 text-green-800' :
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {request.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </>
+          )}
+
+          {/* Request Leave Tab */}
+          {activeTab === 'request' && (
+            <LeaveForm 
+              onSuccess={() => {
+                // Refresh the dashboard data after submitting a request
+                const fetchData = async () => {
+                  try {
+                    // Fetch all leave requests for history
+                    const historyResponse = await getAllLeaveRequests();
+                    if (historyResponse.data) {
+                      setLeaveHistory(historyResponse.data);
+                    }
+                  } catch (error) {
+                    console.error('Error fetching leave history:', error);
+                  }
+                };
+                fetchData();
+              }}
+            />
+          )}
+
+          {/* Employees Tab */}
+          {activeTab === 'employees' && (
+            <div className="bg-white shadow rounded-lg p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold">Employee Management</h2>
+                <button
+                  onClick={() => setShowAddEmployee(!showAddEmployee)}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded flex items-center"
+                >
+                  {showAddEmployee ? (
+                    <>
+                      <span className="mr-2">Cancel</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="mr-2">Add Employee</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                      </svg>
+                    </>
+                  )}
+                </button>
+              </div>
+              
+              {showAddEmployee ? (
+                <EmployeeForm 
+                  onSuccess={() => {
+                    setShowAddEmployee(false);
+                    // Refresh employee list
+                    const fetchEmployees = async () => {
+                      try {
+                        const response = await getEmployees();
+                        const enhancedTeamData = response.data.map(employee => ({
+                          ...employee,
+                          position: employee.position || employee.role || 'Staff',
+                          department: employee.department || 'General',
+                          leaveBalance: employee.leaveBalance !== undefined ? employee.leaveBalance : 20
+                        }));
+                        setTeamMembers(enhancedTeamData);
+                      } catch (error) {
+                        console.error('Error fetching employees:', error);
+                      }
+                    };
+                    fetchEmployees();
+                  }}
+                />
+              ) : (
+                <TeamManagement />
+              )}
+            </div>
           )}
 
           {/* Team Management Tab */}

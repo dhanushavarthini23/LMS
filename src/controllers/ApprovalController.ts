@@ -1,5 +1,5 @@
 import { Request, ResponseToolkit } from '@hapi/hapi';
-import AppDataSource from '../data-source';   // ← point at your TypeORM DataSource
+import AppDataSource from '../data-source';   //pointing towards the TypeORM DataSource
 import { LeaveRequest } from '../entities/LeaveRequest';
 import { Approval }     from '../entities/Approval';
 import { Employee }     from '../entities/Employee';
@@ -8,7 +8,9 @@ export class ApprovalController {
   // Manager-level decision
   static async managerDecision(req: Request, h: ResponseToolkit) {
     const lrId = Number(req.params.id);
-    const { decision, comments } = req.payload as { decision: 'Approved' | 'Rejected'; comments?: string };
+    const { approved, comment } = req.payload as { approved: boolean; comment?: string };
+    const decision = approved ? 'Approved' : 'Rejected';
+    const comments = comment;
     const userId = (req.auth.credentials as any).id;
 
     const lrRepo  = AppDataSource.getRepository(LeaveRequest);
@@ -25,8 +27,6 @@ export class ApprovalController {
       if (!approver) {
         return h.response({ message: 'Approver not found' }).code(404);
       }
-
-      // Save the approval decision
       await apRepo.save({
         leaveRequest: leave,
         approver:     approver,
@@ -55,7 +55,9 @@ export class ApprovalController {
   // HR-level decision
   static async hrDecision(req: Request, h: ResponseToolkit) {
     const lrId = Number(req.params.id);
-    const { decision, comments } = req.payload as { decision: 'Approved' | 'Rejected'; comments?: string };
+    const { approved, comment } = req.payload as { approved: boolean; comment?: string };
+    const decision = approved ? 'Approved' : 'Rejected';
+    const comments = comment;
     const userId = (req.auth.credentials as any).id;
 
     const lrRepo  = AppDataSource.getRepository(LeaveRequest);
