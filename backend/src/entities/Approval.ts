@@ -13,19 +13,19 @@ export class Approval {
 
   @ManyToOne(() => Employee)
   @JoinColumn({ name: 'approver_id' })
-  approver!: Employee;  // Manager or HR
+  approver!: Employee; 
 
   @Column()
-  level!: string;  // 'manager' or 'hr'
+  level!: string;  
 
   @Column({
     type: 'enum',
     enum: ['Pending', 'Approved', 'Rejected'],
-    default: 'Pending',  // Default value
+    default: 'Pending', 
   })
-  status!: 'Pending' | 'Approved' | 'Rejected';  // Enforcing status types
+  status!: 'Pending' | 'Approved' | 'Rejected';  
   @Column({ nullable: true })
-  comments?: string; // Comments from the approver
+  comments?: string; 
   @CreateDateColumn()
   approvalDate!: Date;
   

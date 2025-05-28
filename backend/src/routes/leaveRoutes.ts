@@ -7,29 +7,22 @@ import { calculateLeaveBalance, carryForwardLeave } from '../services/leaveServi
 import { Between, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
 
 const leaveRoutes: ServerRoute[] = [
-  // Get team leaves for calendar
   {
     method: 'GET',
     path: '/api/leaves/team',
     options: {
-      auth: false // Consider enabling auth in production
+      auth: false 
     },
     handler: async (request, h) => {
       try {
-        // Get year and month from query parameters, or use current date if not provided
         const query = request.query as any;
         const now = new Date();
         const year = query.year ? parseInt(query.year) : now.getFullYear();
-        const month = query.month ? parseInt(query.month) : now.getMonth() + 1; // JavaScript months are 0-indexed
-        
-        // Create date range for the specified month
-        const startDate = new Date(year, month - 1, 1); // Month is 0-indexed in Date constructor
-        const endDate = new Date(year, month, 0); // Last day of the month
-        
-        // Get leave requests repository
+        const month = query.month ? parseInt(query.month) : now.getMonth() + 1; 
+        const startDate = new Date(year, month - 1, 1); 
+        const endDate = new Date(year, month, 0); 
         const leaveRepo = (request.server.app as any).dataSource.getRepository(LeaveRequest);
         
-        // Fetch approved leave requests that overlap with the specified month
         const leaveRequests = await leaveRepo.find({
           where: [
             {
@@ -48,22 +41,16 @@ const leaveRoutes: ServerRoute[] = [
           ],
           relations: ['employee']
         });
-        
-        // Format the response to match what the frontend expects
         const formattedLeaves = leaveRequests.map((leave: LeaveRequest) => {
-          // Ensure dates are properly formatted
           let startDateStr = '';
           let endDateStr = '';
           
           try {
-            // Try to convert to ISO string if it's a Date object
             if (leave.startDate instanceof Date) {
               startDateStr = leave.startDate.toISOString().split('T')[0];
             } else if (typeof leave.startDate === 'string') {
-              // If it's already a string, try to format it
               startDateStr = new Date(leave.startDate).toISOString().split('T')[0];
             } else {
-              // Fallback
               startDateStr = String(leave.startDate);
             }
             
@@ -83,10 +70,10 @@ const leaveRoutes: ServerRoute[] = [
           
           return {
             id: leave.id,
-            employeeName: leave.employee?.name || 'Unknown Employee', // Using the name field from Employee entity with fallback
-            startDate: startDateStr, // Format as YYYY-MM-DD
-            endDate: endDateStr,     // Format as YYYY-MM-DD
-            leaveType: leave.leaveType || 'Annual Leave' // Using the new leaveType field
+            employeeName: leave.employee?.name || 'Unknown Employee', 
+            startDate: startDateStr, 
+            endDate: endDateStr,     
+            leaveType: leave.leaveType || 'Annual Leave' 
           };
         });
         
@@ -116,8 +103,6 @@ const leaveRoutes: ServerRoute[] = [
       return h.response(leaveHistory).code(200);
     },
   },
-
-  // Get Leave Balance for Employee
   {
     method: 'GET',
     path: '/api/leave-balance',
@@ -130,8 +115,6 @@ const leaveRoutes: ServerRoute[] = [
       if (!employee) {
         return h.response({ message: 'Employee not found' }).code(404);
       }
-
-      // Calculate leave balance (implement the logic in the service)
       const leaveBalance = await calculateLeaveBalance(userId);
       return h.response({ leaveBalance }).code(200);
     },
@@ -201,8 +184,7 @@ const leaveRoutes: ServerRoute[] = [
           employee: { manager: { id: userId } }
         };
       } else {
-        // Regular employees don't see pending requests
-        whereCondition = { id: -1 }; // No results
+        whereCondition = { id: -1 }; 
       }
       
       const pending = await repo.find({
@@ -215,7 +197,6 @@ const leaveRoutes: ServerRoute[] = [
     },
   },
   
-  // All leave requests (including approved/rejected)
   {
     method: 'GET',
     path: '/api/leave-requests/all',
@@ -234,7 +215,6 @@ const leaveRoutes: ServerRoute[] = [
           { employee: { id: userId } } 
         ];
       } else {
-        // Regular employees only see their own requests
         whereCondition = { employee: { id: userId } };
       }
       

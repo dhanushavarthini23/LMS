@@ -1,9 +1,7 @@
-import pool from '../config/db'; // PostgreSQL connection pool
+import pool from '../config/db'; 
 
-// Define allowed roles
+
 export type Role = 'employee' | 'manager' | 'hr';
-
-// Exported Employee interface for reuse
 export interface Employee {
   id: number;
   name: string;
@@ -11,7 +9,6 @@ export interface Employee {
   role: Role;
 }
 
-// Get all employees
 const getAllEmployees = async (): Promise<Employee[]> => {
   try {
     const result = await pool.query('SELECT * FROM employees ORDER BY id');
@@ -22,7 +19,6 @@ const getAllEmployees = async (): Promise<Employee[]> => {
   }
 };
 
-// Add a new employee
 const addEmployee = async (
   name: string,
   email: string,
@@ -40,7 +36,6 @@ const addEmployee = async (
   }
 };
 
-// Get employee by ID (for profile route)
 const getEmployeeById = async (id: number): Promise<Employee | null> => {
   try {
     const result = await pool.query('SELECT * FROM employees WHERE id = $1', [id]);

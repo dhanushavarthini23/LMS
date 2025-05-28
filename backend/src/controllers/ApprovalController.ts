@@ -1,5 +1,5 @@
 import { Request, ResponseToolkit } from '@hapi/hapi';
-import AppDataSource from '../data-source';   //pointing towards the TypeORM DataSource
+import AppDataSource from '../data-source';  
 import { LeaveRequest } from '../entities/LeaveRequest';
 import { Approval }     from '../entities/Approval';
 import { Employee }     from '../entities/Employee';

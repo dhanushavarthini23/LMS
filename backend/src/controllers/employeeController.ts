@@ -3,15 +3,13 @@ import Joi from 'joi';
 import { Employee } from '../entities/Employee';
 import AppDataSource from '../data-source';
 
-// Defining the allowed roles
+// Defining the roles
 const validRoles = ['Employee', 'Manager', 'HR'] as const;
 type Role = (typeof validRoles)[number];
 
-// Defining the allowed departments
+// Defining the departments
 const validDepartments = ['IT', 'HR', 'Finance', 'Marketing', 'Operations', 'Sales', 'Engineering', 'Customer Support'] as const;
 type Department = (typeof validDepartments)[number];
-
-// Payload validation schema
 const employeeSchema = Joi.object({
   name: Joi.string().min(3).required(),
   email: Joi.string().email().required(),
@@ -29,7 +27,7 @@ export const getEmployees = async (
   try {
     const employeeRepository = AppDataSource.getRepository(Employee);
     
-    // If not authenticated, return all employees (for demo purposes)
+   
     if (!request.auth || !request.auth.credentials) {
       const employees = await employeeRepository.find();
       return h.response(employees).code(200);
@@ -41,20 +39,18 @@ export const getEmployees = async (
     
     let employees: Employee[] = [];
     
-    // Filter employees based on role
+    
     if (userRole === 'HR') {
-      // HR can see all employees
       employees = await employeeRepository.find();
     } else if (userRole === 'Manager') {
-      // Managers can only see their team members
       employees = await employeeRepository.find({
         where: [
-          { manager: { id: userId } }, // Team members
-          { id: userId }               // Include themselves
+          { manager: { id: userId } }, 
+          { id: userId }               
         ]
       });
     } else {
-      // Regular employees can only see themselves
+      
       employees = await employeeRepository.find({
         where: { id: userId }
       });
@@ -119,8 +115,6 @@ export const createEmployee = async (
     return h.response({ error: 'Server error' }).code(500);
   }
 };
-
-// GET /api/employees/profile
 export const getEmployeeProfile = async (
   request: Request,
   h: ResponseToolkit

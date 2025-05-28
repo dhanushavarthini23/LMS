@@ -5,7 +5,6 @@ import { jwtDecode } from 'jwt-decode';
 import { getPendingLeaveRequests, approveLeaveRequestManager, getDashboardData, getEmployees, getAllLeaveRequests } from '../api/api';
 import TeamManagement from '../components/TeamManagement';
 import LeaveReports from '../components/LeaveReports';
-import DelegateAuthority from '../components/DelegateAuthority';
 import LeaveCalendar from '../components/LeaveCalendar';
 import LeaveForm from '../components/LeaveForm';
 import EmployeeForm from '../components/EmployeeForm';
@@ -248,16 +247,6 @@ const ManagerDashboard = () => {
             }`}
           >
             Reports
-          </button>
-          <button
-            onClick={() => setActiveTab('delegate')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'delegate'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Delegate Authority
           </button>
         </nav>
       </div>
@@ -586,8 +575,6 @@ const ManagerDashboard = () => {
           {/* Reports Tab */}
           {activeTab === 'reports' && <LeaveReports />}
 
-          {/* Delegate Authority Tab */}
-          {activeTab === 'delegate' && <DelegateAuthority />}
         </>
       )}
     </div>

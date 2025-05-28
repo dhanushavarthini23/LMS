@@ -12,8 +12,6 @@ declare module '@hapi/hapi' {
       credentials: AuthCredentials;
     };
   }
-
-  // Extending the ServerApplicationState interface correctly
   interface ServerApplicationState {
     dataSource: DataSource; 
   }

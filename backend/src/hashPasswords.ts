@@ -1,17 +1,15 @@
 import bcrypt from 'bcrypt';
 import AppDataSource from './data-source';
-
-// Utility function to hash passwords
 const hashPassword = async (plainPassword: string) => {
   const saltRounds = 10;
   console.log(`Hashing password: ${plainPassword}`);
   return await bcrypt.hash(plainPassword, saltRounds);
 };
 
-// Main function
+
 const hashExistingPasswords = async () => {
   try {
-    await AppDataSource.initialize(); // ✅ Initialize the data source
+    await AppDataSource.initialize(); 
 
     const query = 'SELECT * FROM employees WHERE password IS NOT NULL';
     const users = await AppDataSource.query(query);
@@ -36,11 +34,9 @@ const hashExistingPasswords = async () => {
       }
     }
 
-    await AppDataSource.destroy(); // Optional: Close the DB connection
+    await AppDataSource.destroy(); 
   } catch (error) {
     console.error('Error hashing existing passwords:', error);
   }
 };
-
-// Run the script
 hashExistingPasswords();

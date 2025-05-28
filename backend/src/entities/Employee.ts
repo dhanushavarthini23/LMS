@@ -29,8 +29,8 @@ export class Employee {
   @Column({ nullable: true })
   username?: string;
   
-  @Column({ nullable: true })  // Allow NULLs temporarily
-  password!: string;           // Add password field
+  @Column({ nullable: true })  
+  password!: string;           
   
   @Column({ 
     type: 'enum', 

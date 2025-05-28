@@ -28,7 +28,49 @@ const EmployeeDashboard = () => {
       
       // Fetch dashboard data
       const dashboardResponse = await getDashboardData();
-      setDashboardData(dashboardResponse.data);
+      const rawData = dashboardResponse.data;
+      
+      // Process leave requests to create leave type distribution
+      const leaveRequests = rawData.leaveRequests || [];
+      
+      // Count leave types
+      const leaveTypeCount = {
+        annual: 0,
+        sick: 0,
+        personal: 0,
+        other: 0
+      };
+      
+      leaveRequests.forEach(leave => {
+        const type = leave.leaveType?.toLowerCase() || '';
+        if (type.includes('annual') || type.includes('vacation')) {
+          leaveTypeCount.annual += 1;
+        } else if (type.includes('sick')) {
+          leaveTypeCount.sick += 1;
+        } else if (type.includes('personal')) {
+          leaveTypeCount.personal += 1;
+        } else {
+          leaveTypeCount.other += 1;
+        }
+      });
+      
+      // Create monthly trends data
+      const monthlyData = Array(12).fill(0);
+      leaveRequests.forEach(leave => {
+        if (leave.startDate) {
+          const month = new Date(leave.startDate).getMonth();
+          monthlyData[month] += 1;
+        }
+      });
+      
+      // Create enhanced dashboard data
+      const enhancedData = {
+        ...rawData,
+        leaveTypeDistribution: leaveTypeCount,
+        monthlyTrends: monthlyData
+      };
+      
+      setDashboardData(enhancedData);
       
       // Fetch leave balance
       const balanceResponse = await getLeaveBalance();

@@ -25,7 +25,7 @@ export const getEmployeeDashboardData = async (userId: number) => {
     return leaveRequests;
   } catch (error) {
     console.error(`Error fetching employee dashboard data:`, error);
-    throw error; // Let the route handler deal with the error
+    throw error; 
   }
 };
 
@@ -36,10 +36,10 @@ export const getManagerDashboardData = async (managerId: number) => {
     const leaveRepo = AppDataSource.getRepository(LeaveRequest);
     const employeeRepo = AppDataSource.getRepository(Employee);
     
-    // Get pending leave requests for the manager's team
+    
     let pendingRequests: LeaveRequest[] = [];
     try {
-      // First, get all employees managed by this manager
+      
       const teamMembers = await employeeRepo.find({
         where: { manager: { id: managerId } },
         select: ['id']
@@ -63,28 +63,21 @@ export const getManagerDashboardData = async (managerId: number) => {
     } catch (error) {
       console.error('Error fetching pending requests:', error);
     }
-    
-    // Get team members
     let teamMembers: Employee[] = [];
     try {
-      // Get team members managed by this manager
       teamMembers = await employeeRepo.find({
         where: { manager: { id: managerId } },
         relations: ['manager'],
       });
       console.log(`Found ${teamMembers.length} team members managed by manager ${managerId}`);
-      
-      // Only set default leave balance if it's not already set
       teamMembers.forEach(employee => {
         if (employee.leaveBalance === undefined || employee.leaveBalance === null) {
-          employee.leaveBalance = 20; // Default value
+          employee.leaveBalance = 20; 
         }
       });
     } catch (error) {
       console.error('Error fetching team members:', error);
     }
-    
-    // Count approved requests
     let approvedCount = 0;
     try {
       approvedCount = await leaveRepo.count({
@@ -116,8 +109,6 @@ export const getHRDashboardData = async () => {
     console.log('Fetching HR dashboard data');
     const leaveRepo = AppDataSource.getRepository(LeaveRequest);
     const employeeRepo = AppDataSource.getRepository(Employee);
-    
-    // Get all leave requests
     let allRequests: LeaveRequest[] = [];
     try {
       allRequests = await leaveRepo.find({
@@ -134,11 +125,9 @@ export const getHRDashboardData = async () => {
     try {
       allEmployees = await employeeRepo.find();
       console.log(`Found ${allEmployees.length} employees`);
-      
-      // Only set default leave balance if it's not already set
       allEmployees.forEach(employee => {
         if (employee.leaveBalance === undefined || employee.leaveBalance === null) {
-          employee.leaveBalance = 20; // Default value
+          employee.leaveBalance = 20; 
         }
       });
     } catch (error) {
@@ -148,8 +137,6 @@ export const getHRDashboardData = async () => {
     // Get pending requests
     let pendingRequests: LeaveRequest[] = [];
     try {
-      // Get all pending requests and manager-approved requests
-      // Also get requests from managers that are still pending
       pendingRequests = await leaveRepo.find({
         where: [
           { status: 'Pending' },
@@ -158,8 +145,6 @@ export const getHRDashboardData = async () => {
         relations: ['employee', 'approvals', 'approvals.approver'],
         order: { createdAt: 'DESC' },
       });
-      
-      // Make sure we include pending requests from managers
       const managerRequests = await leaveRepo.find({
         where: {
           status: 'Pending',
@@ -169,8 +154,6 @@ export const getHRDashboardData = async () => {
         },
         relations: ['employee', 'approvals', 'approvals.approver'],
       });
-      
-      // Add manager requests to pending requests (avoiding duplicates)
       const existingIds = new Set(pendingRequests.map(req => req.id));
       for (const req of managerRequests) {
         if (!existingIds.has(req.id)) {

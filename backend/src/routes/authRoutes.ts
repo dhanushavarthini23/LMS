@@ -11,7 +11,7 @@ export const authRoutes: ServerRoute[] = [
       tags: ['api'],
       description: 'Login with username and password',
       notes: 'Returns JWT if successful',
-      handler: AuthController.login, // Use the real handler
+      handler: AuthController.login, 
     },
   },
 ];

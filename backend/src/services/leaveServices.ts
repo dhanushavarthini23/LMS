@@ -1,35 +1,28 @@
-import AppDataSource from '../data-source'; // Make sure to import your DataSource instance
+import AppDataSource from '../data-source'; 
 import { LeaveRequest } from '../entities/LeaveRequest';
 import { Employee } from '../entities/Employee';
-import { MoreThanOrEqual, LessThanOrEqual } from 'typeorm'; // Importing necessary operators
+import { MoreThanOrEqual, LessThanOrEqual } from 'typeorm'; 
 
-// Function to calculate leave balance for an employee
+
 export const calculateLeaveBalance = async (employeeId: number) => {
-  // Get employee repository
-  const employeeRepo = AppDataSource.getRepository(Employee); // Updated to use DataSource.getRepository
+
+  const employeeRepo = AppDataSource.getRepository(Employee);
   const employee = await employeeRepo.findOne({ where: { id: employeeId } });
 
   if (!employee) {
     throw new Error('Employee not found');
   }
-
-  // Fetch the leave requests for the employee with "Approved" status
-  const leaveRepo = AppDataSource.getRepository(LeaveRequest); // Updated to use DataSource.getRepository
+  const leaveRepo = AppDataSource.getRepository(LeaveRequest); 
   const approvedLeaves = await leaveRepo.find({
     where: { employee: { id: employeeId }, status: 'Approved' },
   });
-
-  // Calculate total leave days taken
   let totalLeaveDaysTaken = 0;
   approvedLeaves.forEach((leave) => {
     const startDate = new Date(leave.startDate);
     const endDate = new Date(leave.endDate);
-    // Add 1 to include both start and end dates
     const leaveDays = ((endDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24)) + 1; 
     totalLeaveDaysTaken += leaveDays;
   });
-
-  // Return a structured leave balance object
   return {
     annual: 20,
     sick: 10,

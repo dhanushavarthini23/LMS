@@ -95,23 +95,7 @@ export const getNotifications = async () => {
   return api.get('/api/notifications');
 };
 
-// Delegations
-export const getDelegations = async () => {
-  return api.get('/api/delegations');
-};
 
-export const createDelegation = async (delegateId, startDate, endDate, reason) => {
-  return api.post('/api/delegations', {
-    delegateId,
-    startDate,
-    endDate,
-    reason
-  });
-};
-
-export const cancelDelegation = async (delegationId) => {
-  return api.put(`/api/delegations/${delegationId}/cancel`);
-};
 
 export const markNotificationAsRead = async (id) => {
   return api.post(`/api/notifications/${id}/read`);

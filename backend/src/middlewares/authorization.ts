@@ -1,6 +1,4 @@
 import { Request, ResponseToolkit } from '@hapi/hapi';
-
-// Define only the part of credentials you care about
 interface CustomAuthCredentials {
   id: number;
   role: string;
