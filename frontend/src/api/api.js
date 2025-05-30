@@ -58,16 +58,16 @@ export const getAllLeaveRequests = async () => {
   return api.get('/api/leave-requests/all');
 };
 
-export const approveLeaveRequestManager = async (leaveId, decision, comment = '') => {
+export const approveLeaveRequestManager = async (leaveId, isApproved, comment = '') => {
   return api.post(`/api/leave-requests/${leaveId}/approve/manager`, {
-    approved: decision,
+    decision: isApproved ? 'approve' : 'reject',
     comment,
   });
 };
 
-export const approveLeaveRequestHR = async (leaveId, decision, comment = '') => {
+export const approveLeaveRequestHR = async (leaveId, isApproved, comment = '') => {
   return api.post(`/api/leave-requests/${leaveId}/approve/hr`, {
-    approved: decision,
+    decision: isApproved ? 'approve' : 'reject',
     comment,
   });
 };

@@ -17,6 +17,7 @@ const ManagerDashboard = () => {
   const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showAddEmployee, setShowAddEmployee] = useState(false);
   const [userName, setUserName] = useState('');
@@ -109,7 +110,15 @@ const ManagerDashboard = () => {
 
   const handleApprove = async (id) => {
     try {
-      await approveLeaveRequestManager(id, true);
+      setLoading(true);
+      setError('');
+      
+      // Call the API to approve the leave request
+      const response = await approveLeaveRequestManager(id, true);
+      console.log('Approval response:', response);
+      
+      // Show success message
+      setSuccess('Leave request approved successfully.');
       
       // Refresh the dashboard data
       const dashboardResponse = await getDashboardData();
@@ -129,15 +138,32 @@ const ManagerDashboard = () => {
       if (historyResponse.data) {
         setLeaveHistory(historyResponse.data);
       }
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setSuccess('');
+      }, 3000);
     } catch (error) {
       console.error('Error approving leave request:', error);
       setError('Failed to approve leave request. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleReject = async (id) => {
     try {
-      await approveLeaveRequestManager(id, false);
+      setLoading(true);
+      setError('');
+      
+      // Call the API to reject the leave request
+      const response = await approveLeaveRequestManager(id, false);
+      console.log('Rejection response:', response);
+      
+      // Show success message
+      setSuccess('Leave request rejected successfully.');
+      
+      // Refresh the dashboard data
       const dashboardResponse = await getDashboardData();
       if (dashboardResponse.data) {
         const data = dashboardResponse.data;
@@ -149,13 +175,22 @@ const ManagerDashboard = () => {
           setPendingRequests(data.managerDashboardData.pendingRequests);
         }
       }
+      
+      // Refresh leave history
       const historyResponse = await getAllLeaveRequests();
       if (historyResponse.data) {
         setLeaveHistory(historyResponse.data);
       }
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setSuccess('');
+      }, 3000);
     } catch (error) {
       console.error('Error rejecting leave request:', error);
       setError('Failed to reject leave request. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -258,6 +293,10 @@ const ManagerDashboard = () => {
       ) : error && activeTab === 'dashboard' ? (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
           {error}
+        </div>
+      ) : success && activeTab === 'dashboard' ? (
+        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+          {success}
         </div>
       ) : (
         <>
