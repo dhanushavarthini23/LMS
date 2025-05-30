@@ -4,6 +4,7 @@ import {
   getManagerDashboardData,
   getHRDashboardData,
 } from '../services/dashboardService';
+import Joi from 'joi';
 
 const dashboardRoutes: ServerRoute[] = [
   {
@@ -11,7 +12,75 @@ const dashboardRoutes: ServerRoute[] = [
     path: '/api/dashboard',
     options: {
       auth: 'jwt',
+      tags: ['api', 'dashboard'],
       description: 'Get dashboard data based on user role',
+      notes: 'Returns different dashboard data depending on the authenticated user\'s role (Employee, Manager, or HR)',
+      plugins: {
+        'hapi-swagger': {
+          responses: {
+            '200': {
+              description: 'Dashboard data retrieved successfully',
+              schema: Joi.object({
+                // Employee response
+                leaveRequests: Joi.array().items(
+                  Joi.object({
+                    id: Joi.number(),
+                    startDate: Joi.date(),
+                    endDate: Joi.date(),
+                    status: Joi.string(),
+                    leaveType: Joi.string(),
+                    reason: Joi.string()
+                  })
+                ).description('Leave requests for employee dashboard'),
+                
+                // Manager response
+                managerDashboardData: Joi.object({
+                  pendingRequests: Joi.array().items(Joi.object()),
+                  teamMembers: Joi.array().items(Joi.object()),
+                  approvedThisMonth: Joi.number()
+                }).description('Dashboard data for managers'),
+                pendingRequests: Joi.array().items(Joi.object()),
+                teamMembers: Joi.array().items(Joi.object()),
+                approvedThisMonth: Joi.number(),
+                
+                // HR response
+                hrDashboardData: Joi.object({
+                  allRequests: Joi.array().items(Joi.object()),
+                  allEmployees: Joi.array().items(Joi.object()),
+                  pendingRequests: Joi.array().items(Joi.object()),
+                  approvedThisMonth: Joi.number()
+                }).description('Dashboard data for HR'),
+                allRequests: Joi.array().items(Joi.object()),
+                allEmployees: Joi.array().items(Joi.object()),
+                
+                // Common fields
+                success: Joi.boolean().required(),
+                error: Joi.string().optional()
+              })
+            },
+            '400': {
+              description: 'Bad request',
+              schema: Joi.object({
+                success: Joi.boolean().required().example(false),
+                error: Joi.string().required().example('Role not recognized')
+              })
+            },
+            '401': {
+              description: 'Unauthorized',
+              schema: Joi.object({
+                message: Joi.string().required().example('Unauthorized')
+              })
+            },
+            '500': {
+              description: 'Server error',
+              schema: Joi.object({
+                success: Joi.boolean().required().example(false),
+                error: Joi.string().required().example('An unexpected error occurred')
+              })
+            }
+          }
+        }
+      },
     },
     handler: async (request, h) => {
       try {

@@ -8,8 +8,8 @@ export class ApprovalController {
   // Manager-level decision
   static async managerDecision(req: Request, h: ResponseToolkit) {
     const lrId = Number(req.params.id);
-    const { approved, comment } = req.payload as { approved: boolean; comment?: string };
-    const decision = approved ? 'Approved' : 'Rejected';
+    const { decision: decisionAction, comment } = req.payload as { decision: string; comment?: string };
+    const decision = decisionAction === 'approve' ? 'Approved' : 'Rejected';
     const comments = comment;
     const userId = (req.auth.credentials as any).id;
 
@@ -55,8 +55,8 @@ export class ApprovalController {
   // HR-level decision
   static async hrDecision(req: Request, h: ResponseToolkit) {
     const lrId = Number(req.params.id);
-    const { approved, comment } = req.payload as { approved: boolean; comment?: string };
-    const decision = approved ? 'Approved' : 'Rejected';
+    const { decision: decisionAction, comment } = req.payload as { decision: string; comment?: string };
+    const decision = decisionAction === 'approve' ? 'Approved' : 'Rejected';
     const comments = comment;
     const userId = (req.auth.credentials as any).id;
 

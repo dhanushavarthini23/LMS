@@ -5,13 +5,48 @@ import { ApprovalController } from '../controllers/ApprovalController';
 import { isAuthenticated, isManager, isHR } from '../middlewares/authorization';
 import { calculateLeaveBalance, carryForwardLeave } from '../services/leaveServices';
 import { Between, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
+import Joi from 'joi';
 
 const leaveRoutes: ServerRoute[] = [
   {
     method: 'GET',
     path: '/api/leaves/team',
     options: {
-      auth: false 
+      auth: false,
+      tags: ['api', 'leaves'],
+      description: 'Get team leaves for a specific month and year',
+      notes: 'Returns all approved leave requests for the specified month and year',
+      validate: {
+        query: Joi.object({
+          year: Joi.number().integer().min(2000).max(2100).description('Year for leave requests'),
+          month: Joi.number().integer().min(1).max(12).description('Month for leave requests (1-12)')
+        })
+      },
+      plugins: {
+        'hapi-swagger': {
+          responses: {
+            '200': {
+              description: 'Successful response with team leaves',
+              schema: Joi.array().items(
+                Joi.object({
+                  id: Joi.number().required().description('Leave request ID'),
+                  employeeName: Joi.string().required().description('Name of the employee'),
+                  startDate: Joi.string().required().description('Start date of leave'),
+                  endDate: Joi.string().required().description('End date of leave'),
+                  leaveType: Joi.string().required().description('Type of leave')
+                })
+              )
+            },
+            '500': {
+              description: 'Server error',
+              schema: Joi.object({
+                message: Joi.string().required(),
+                error: Joi.string().required()
+              })
+            }
+          }
+        }
+      }
     },
     handler: async (request, h) => {
       try {
@@ -164,6 +199,35 @@ const leaveRoutes: ServerRoute[] = [
   {
     method: 'GET',
     path: '/api/leave-requests/pending',
+    options: {
+      tags: ['api', 'leave-requests'],
+      description: 'Get pending leave requests',
+      notes: 'Returns pending leave requests based on user role. HR users see both Pending and Manager Approved requests. Managers only see Pending requests from their team members.',
+      plugins: {
+        'hapi-swagger': {
+          responses: {
+            '200': {
+              description: 'List of pending leave requests',
+              schema: Joi.array().items(
+                Joi.object({
+                  id: Joi.number().required(),
+                  startDate: Joi.date().required(),
+                  endDate: Joi.date().required(),
+                  reason: Joi.string().required(),
+                  leaveType: Joi.string().required(),
+                  status: Joi.string().required(),
+                  employee: Joi.object().required(),
+                  approvals: Joi.array().items(Joi.object())
+                })
+              )
+            },
+            '500': {
+              description: 'Server error'
+            }
+          }
+        }
+      }
+    },
     handler: async (request, h) => {
       const repo = (request.server.app as any).dataSource.getRepository(LeaveRequest);
       const userRole = (request.auth.credentials as any).role;
@@ -232,7 +296,46 @@ const leaveRoutes: ServerRoute[] = [
   {
     method: 'POST',
     path: '/api/leave-requests/{id}/approve/manager',
-    options: { pre: [isAuthenticated, isManager] },
+    options: { 
+      pre: [isAuthenticated, isManager],
+      tags: ['api', 'approvals'],
+      description: 'Manager approval for leave request',
+      notes: 'Allows a manager to approve or reject a leave request',
+      validate: {
+        params: Joi.object({
+          id: Joi.number().required().description('Leave request ID')
+        }),
+        payload: Joi.object({
+          decision: Joi.string().valid('approve', 'reject').required().description('Approval decision'),
+          comment: Joi.string().allow('').optional().description('Optional comment for the decision')
+        })
+      },
+      plugins: {
+        'hapi-swagger': {
+          responses: {
+            '200': {
+              description: 'Leave request processed successfully',
+              schema: Joi.object({
+                message: Joi.string().required(),
+                leaveRequest: Joi.object()
+              })
+            },
+            '400': {
+              description: 'Bad request',
+              schema: Joi.object({
+                message: Joi.string().required()
+              })
+            },
+            '404': {
+              description: 'Leave request not found',
+              schema: Joi.object({
+                message: Joi.string().required()
+              })
+            }
+          }
+        }
+      }
+    },
     handler: ApprovalController.managerDecision,
   },
 
@@ -240,7 +343,46 @@ const leaveRoutes: ServerRoute[] = [
   {
     method: 'POST',
     path: '/api/leave-requests/{id}/approve/hr',
-    options: { pre: [isAuthenticated, isHR] },
+    options: { 
+      pre: [isAuthenticated, isHR],
+      tags: ['api', 'approvals'],
+      description: 'HR approval for leave request',
+      notes: 'Allows an HR representative to approve or reject a leave request',
+      validate: {
+        params: Joi.object({
+          id: Joi.number().required().description('Leave request ID')
+        }),
+        payload: Joi.object({
+          decision: Joi.string().valid('approve', 'reject').required().description('Approval decision'),
+          comment: Joi.string().allow('').optional().description('Optional comment for the decision')
+        })
+      },
+      plugins: {
+        'hapi-swagger': {
+          responses: {
+            '200': {
+              description: 'Leave request processed successfully',
+              schema: Joi.object({
+                message: Joi.string().required(),
+                leaveRequest: Joi.object()
+              })
+            },
+            '400': {
+              description: 'Bad request',
+              schema: Joi.object({
+                message: Joi.string().required()
+              })
+            },
+            '404': {
+              description: 'Leave request not found',
+              schema: Joi.object({
+                message: Joi.string().required()
+              })
+            }
+          }
+        }
+      }
+    },
     handler: ApprovalController.hrDecision, 
   },
 
@@ -248,6 +390,51 @@ const leaveRoutes: ServerRoute[] = [
   {
     method: 'POST',
     path: '/api/leave-requests',
+    options: {
+      tags: ['api', 'leave-requests'],
+      description: 'Create a new leave request',
+      notes: 'Creates a new leave request for the authenticated user',
+      validate: {
+        payload: Joi.object({
+          startDate: Joi.date().required().description('Start date of leave'),
+          endDate: Joi.date().required().description('End date of leave'),
+          reason: Joi.string().required().description('Reason for leave request'),
+          leaveType: Joi.string().default('Annual Leave').description('Type of leave (default: Annual Leave)')
+        })
+      },
+      plugins: {
+        'hapi-swagger': {
+          responses: {
+            '201': {
+              description: 'Leave request created successfully',
+              schema: Joi.object({
+                id: Joi.number().required(),
+                startDate: Joi.date().required(),
+                endDate: Joi.date().required(),
+                reason: Joi.string().required(),
+                leaveType: Joi.string().required(),
+                status: Joi.string().required(),
+                employee: Joi.object().required(),
+                manager: Joi.object().allow(null)
+              })
+            },
+            '404': {
+              description: 'Employee not found',
+              schema: Joi.object({
+                message: Joi.string().required()
+              })
+            },
+            '500': {
+              description: 'Server error',
+              schema: Joi.object({
+                message: Joi.string().required(),
+                error: Joi.string().required()
+              })
+            }
+          }
+        }
+      }
+    },
     handler: async (request, h) => {
       try {
         const { startDate, endDate, reason, leaveType } = request.payload as any;
