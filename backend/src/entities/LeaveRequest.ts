@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, OneToMany } from 'typeorm';
 import { Employee } from './Employee';
 import { Approval } from './Approval';
-
+import { LeaveType } from './LeaveType';
 @Entity('leave_requests')
 export class LeaveRequest {
   @PrimaryGeneratedColumn()
@@ -23,13 +23,16 @@ export class LeaveRequest {
 
   @Column()
   reason!: string;
+
+  @Column({ type: 'text', nullable: true })
+  justification?: string;
+
+  @Column({ type: 'boolean', default: false })
+  isBackdated!: boolean;
   
-  @Column({
-    type: 'enum',
-    enum: ['Annual Leave', 'Sick Leave', 'Personal Leave', 'Other'],
-    default: 'Annual Leave'
-  })
-  leaveType!: 'Annual Leave' | 'Sick Leave' | 'Personal Leave' | 'Other';
+@ManyToOne(() => LeaveType, (leaveType) => leaveType.leaveRequests)
+@JoinColumn({ name: 'leave_type_id' })
+leaveType!: LeaveType
 
   @Column({
     type: 'enum',

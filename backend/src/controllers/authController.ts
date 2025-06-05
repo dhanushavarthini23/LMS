@@ -18,6 +18,11 @@ export class AuthController {
       return h.response({ message: 'Invalid username or password' }).code(401);
     }
 
+    // Check if user is active
+    if (user.isActive === false) {
+      return h.response({ message: 'Account has been deactivated. Please contact administrator.' }).code(401);
+    }
+
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) {
       return h.response({ message: 'Invalid username or password' }).code(401);

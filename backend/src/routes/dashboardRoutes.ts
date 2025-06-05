@@ -4,7 +4,7 @@ import {
   getManagerDashboardData,
   getHRDashboardData,
 } from '../services/dashboardService';
-import Joi from 'joi';
+import * as Joi from 'joi';
 
 const dashboardRoutes: ServerRoute[] = [
   {
@@ -137,10 +137,10 @@ const dashboardRoutes: ServerRoute[] = [
           }
         }
         
-        if (role === 'HR') {
+        if (role === 'HR' || role === 'Admin') {
           try {
             const data = await getHRDashboardData();
-            console.log('HR dashboard data:', data);
+            console.log(`${role} dashboard data:`, data);
             
             return h.response({
               hrDashboardData: data,
@@ -151,7 +151,7 @@ const dashboardRoutes: ServerRoute[] = [
               success: true
             }).code(200);
           } catch (error) {
-            console.error('Error in HR dashboard:', error);
+            console.error(`Error in ${role} dashboard:`, error);
             return h.response({
               hrDashboardData: {
                 allRequests: [],

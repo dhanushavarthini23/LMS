@@ -3,19 +3,18 @@ import { LeaveRequest } from '../entities/LeaveRequest';
 import { Employee } from '../entities/Employee';
 import AppDataSource from '../data-source';
 import { In } from 'typeorm';
+import { calculateLeaveBalance } from './leaveServices';
 
 // 1. Employee dashboard
 export const getEmployeeDashboardData = async (userId: number) => {
   try {
     console.log(`Fetching dashboard data for employee ${userId}`);
     const leaveRepo = AppDataSource.getRepository(LeaveRequest);
-    
-    // Get leave requests for this employee
     const leaveRequests = await leaveRepo.find({
       where: { 
         employee: { id: userId } 
       },
-      relations: ['employee', 'approvals', 'approvals.approver'],
+      relations: ['employee', 'approvals', 'approvals.approver', 'leaveType'],
       order: { 
         createdAt: 'DESC' 
       }
@@ -45,10 +44,8 @@ export const getManagerDashboardData = async (managerId: number) => {
         select: ['id']
       });
       
-      // Get the IDs of team members
-      const teamMemberIds = teamMembers.map(member => member.id);
       
-      // Only fetch leave requests for team members, not the manager's own requests
+      const teamMemberIds = teamMembers.map(member => member.id);
       pendingRequests = await leaveRepo.find({
         where: { 
           status: 'Pending',
@@ -56,7 +53,7 @@ export const getManagerDashboardData = async (managerId: number) => {
             id: In(teamMemberIds) 
           }
         },
-        relations: ['employee', 'approvals', 'approvals.approver'],
+        relations: ['employee', 'approvals', 'approvals.approver', 'leaveType'],
         order: { createdAt: 'DESC' },
       });
       console.log(`Found ${pendingRequests.length} pending requests for manager ${managerId}'s team`);
@@ -67,14 +64,22 @@ export const getManagerDashboardData = async (managerId: number) => {
     try {
       teamMembers = await employeeRepo.find({
         where: { manager: { id: managerId } },
-        relations: ['manager'],
+        relations: ['manager', 'department'],
       });
       console.log(`Found ${teamMembers.length} team members managed by manager ${managerId}`);
-      teamMembers.forEach(employee => {
-        if (employee.leaveBalance === undefined || employee.leaveBalance === null) {
-          employee.leaveBalance = 20; 
+      for (const employee of teamMembers) {
+        try {
+          const leaveBalance = await calculateLeaveBalance(employee.id);
+          employee.annualLeaveBalance = leaveBalance.annual;
+          employee.sickLeaveBalance = leaveBalance.sick;
+          employee.personalLeaveBalance = leaveBalance.personal;
+        } catch (error) {
+          console.error(`Error calculating leave balance for employee ${employee.id}:`, error);
+          employee.annualLeaveBalance = employee.annualLeaveBalance || 20;
+          employee.sickLeaveBalance = employee.sickLeaveBalance || 10;
+          employee.personalLeaveBalance = employee.personalLeaveBalance || 5;
         }
-      });
+      }
     } catch (error) {
       console.error('Error fetching team members:', error);
     }
@@ -112,24 +117,34 @@ export const getHRDashboardData = async () => {
     let allRequests: LeaveRequest[] = [];
     try {
       allRequests = await leaveRepo.find({
-        relations: ['employee', 'approvals', 'approvals.approver'],
+        relations: ['employee', 'approvals', 'approvals.approver', 'leaveType'],
         order: { createdAt: 'DESC' },
       });
       console.log(`Found ${allRequests.length} leave requests`);
     } catch (error) {
       console.error('Error fetching all requests:', error);
     }
-    
-    // Get all employees
     let allEmployees: Employee[] = [];
     try {
-      allEmployees = await employeeRepo.find();
-      console.log(`Found ${allEmployees.length} employees`);
-      allEmployees.forEach(employee => {
-        if (employee.leaveBalance === undefined || employee.leaveBalance === null) {
-          employee.leaveBalance = 20; 
-        }
+      allEmployees = await employeeRepo.find({
+        relations: ['department', 'manager']
       });
+      console.log(`Found ${allEmployees.length} employees`);
+      
+      // Calculate actual leave balances for each employee
+      for (const employee of allEmployees) {
+        try {
+          const leaveBalance = await calculateLeaveBalance(employee.id);
+          employee.annualLeaveBalance = leaveBalance.annual;
+          employee.sickLeaveBalance = leaveBalance.sick;
+          employee.personalLeaveBalance = leaveBalance.personal;
+        } catch (error) {
+          console.error(`Error calculating leave balance for employee ${employee.id}:`, error);
+          employee.annualLeaveBalance = employee.annualLeaveBalance || 20;
+          employee.sickLeaveBalance = employee.sickLeaveBalance || 10;
+          employee.personalLeaveBalance = employee.personalLeaveBalance || 5;
+        }
+      }
     } catch (error) {
       console.error('Error fetching all employees:', error);
     }
@@ -142,7 +157,7 @@ export const getHRDashboardData = async () => {
           { status: 'Pending' },
           { status: 'Manager Approved' }
         ],
-        relations: ['employee', 'approvals', 'approvals.approver'],
+        relations: ['employee', 'approvals', 'approvals.approver', 'leaveType'],
         order: { createdAt: 'DESC' },
       });
       const managerRequests = await leaveRepo.find({
@@ -152,7 +167,7 @@ export const getHRDashboardData = async () => {
             role: 'Manager'
           }
         },
-        relations: ['employee', 'approvals', 'approvals.approver'],
+        relations: ['employee', 'approvals', 'approvals.approver', 'leaveType'],
       });
       const existingIds = new Set(pendingRequests.map(req => req.id));
       for (const req of managerRequests) {
@@ -164,8 +179,6 @@ export const getHRDashboardData = async () => {
     } catch (error) {
       console.error('Error fetching pending requests:', error);
     }
-    
-    // Count approved requests
     let approvedCount = 0;
     try {
       approvedCount = await leaveRepo.count({

@@ -6,6 +6,9 @@ import HapiSwagger from 'hapi-swagger';
 import { logRequest, isAuthenticated, isManager, isHR } from './middlewares';
 import employeeRoutes from './routes/employeeRoutes';
 import leaveRoutes from './routes/leaveRoutes';
+import leaveTypeRoutes from './routes/leaveTypeRoutes';
+import departmentRoutes from './routes/departmentRoutes';
+import adminRoutes from './routes/adminRoutes';
 import { authRoutes } from './routes/authRoutes';
 import AppDataSource from './data-source';
 import dashboardRoutes from './routes/dashboardRoutes';
@@ -97,6 +100,9 @@ const init = async () => {
 
   employeeRoutes.forEach(route => server.route(route));
   leaveRoutes.forEach(route => server.route(route)); 
+  leaveTypeRoutes.forEach(route => server.route(route));
+  departmentRoutes.forEach(route => server.route(route));
+  adminRoutes.forEach(route => server.route(route));
   dashboardRoutes.forEach(route => server.route(route));
   try {
     console.log(server.table());

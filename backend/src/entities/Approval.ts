@@ -24,8 +24,7 @@ export class Approval {
     default: 'Pending', 
   })
   status!: 'Pending' | 'Approved' | 'Rejected';  
-  @Column({ nullable: true })
-  comments?: string; 
+  
   @CreateDateColumn()
   approvalDate!: Date;
   
