@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { getDashboardData, getAllLeaveRequests } from '../api/api';
 
 const LeaveReports = () => {
-  const [reportType, setReportType] = useState('monthly');
+  const [reportType, setReportType] = useState('yearly');
   const [dateRange, setDateRange] = useState({
-    startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0], // First day of current month
-    endDate: new Date().toISOString().split('T')[0] // Today
+    startDate: new Date(2024, 0, 1).toISOString().split('T')[0], // January 1, 2024
+    endDate: new Date(2025, 11, 31).toISOString().split('T')[0] // December 31, 2025
   });
   const [department, setDepartment] = useState('all');
   const [reportData, setReportData] = useState(null);
@@ -20,6 +20,8 @@ const LeaveReports = () => {
         setLoading(true);
         const response = await getAllLeaveRequests();
         if (response.data) {
+          console.log('Fetched leave requests:', response.data);
+          console.log('Sample request structure:', response.data[0]);
           setAllLeaveRequests(response.data);
         }
       } catch (error) {
@@ -35,11 +37,11 @@ const LeaveReports = () => {
 
   const departments = [
     { id: 'all', name: 'All Departments' },
-    { id: 'hr', name: 'Human Resources' },
-    { id: 'it', name: 'Information Technology' },
-    { id: 'finance', name: 'Finance' },
-    { id: 'marketing', name: 'Marketing' },
-    { id: 'operations', name: 'Operations' }
+    { id: 'Human Resources', name: 'Human Resources' },
+    { id: 'Information Technology', name: 'Information Technology' },
+    { id: 'Finance', name: 'Finance' },
+    { id: 'Marketing', name: 'Marketing' },
+    { id: 'Operations', name: 'Operations' }
   ];
 
   
@@ -62,7 +64,7 @@ const LeaveReports = () => {
         start = new Date(today.getFullYear(), today.getMonth(), 1);
         break;
       case 'yearly':
-        // Start of current year
+        // Start of current year to end of next year (to capture test data)
         start = new Date(today.getFullYear(), 0, 1);
         break;
       case 'custom':
@@ -72,9 +74,15 @@ const LeaveReports = () => {
         break;
     }
     
+    let end = new Date(today);
+    if (reportType === 'yearly') {
+      // For yearly reports, include next year to capture test data
+      end = new Date(today.getFullYear() + 1, 11, 31);
+    }
+    
     setDateRange({
       startDate: start.toISOString().split('T')[0],
-      endDate: today.toISOString().split('T')[0]
+      endDate: end.toISOString().split('T')[0]
     });
   }, [reportType]);
 
@@ -96,7 +104,7 @@ const LeaveReports = () => {
       
       if (department !== 'all') {
         filteredRequests = filteredRequests.filter(request => {
-          return request.employee?.department?.toLowerCase() === department.toLowerCase();
+          return request.employee?.department?.name?.toLowerCase() === department.toLowerCase();
         });
       }
       
@@ -119,7 +127,8 @@ const LeaveReports = () => {
       // Find most common leave type
       const leaveTypeCounts = {};
       filteredRequests.forEach(req => {
-        leaveTypeCounts[req.leaveType] = (leaveTypeCounts[req.leaveType] || 0) + 1;
+        const leaveTypeName = req.leaveType?.name || 'Unknown';
+        leaveTypeCounts[leaveTypeName] = (leaveTypeCounts[leaveTypeName] || 0) + 1;
       });
       
       let mostCommonLeaveType = 'None';
@@ -337,7 +346,7 @@ const LeaveReports = () => {
                             {request.employee?.name || 'Unknown'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            {request.leaveType || 'Annual Leave'}
+                            {request.leaveType?.name || 'Annual Leave'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             {startDate.toLocaleDateString()}

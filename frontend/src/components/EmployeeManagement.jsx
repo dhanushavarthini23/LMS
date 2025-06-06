@@ -16,7 +16,7 @@ const EmployeeManagement = ({ employees, departments, onEmployeeUpdate }) => {
     username: '',
     password: '',
     role: 'Employee',
-    departmentId: '',
+    department: '',
     managerId: '',
     isActive: true
   });
@@ -36,6 +36,7 @@ const EmployeeManagement = ({ employees, departments, onEmployeeUpdate }) => {
     setSuccess('');
 
     try {
+      console.log('Creating employee with data:', newEmployee);
       await createEmployee(newEmployee);
       setSuccess('Employee created successfully!');
       setNewEmployee({
@@ -44,7 +45,7 @@ const EmployeeManagement = ({ employees, departments, onEmployeeUpdate }) => {
         username: '',
         password: '',
         role: 'Employee',
-        departmentId: '',
+        department: '',
         managerId: '',
         isActive: true
       });
@@ -186,14 +187,14 @@ const EmployeeManagement = ({ employees, departments, onEmployeeUpdate }) => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
               <select
-                name="departmentId"
-                value={newEmployee.departmentId}
+                name="department"
+                value={newEmployee.department}
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Select Department</option>
                 {departments.map(dept => (
-                  <option key={dept.id} value={dept.id}>{dept.name}</option>
+                  <option key={dept.id} value={dept.name}>{dept.name}</option>
                 ))}
               </select>
             </div>

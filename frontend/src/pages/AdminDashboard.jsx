@@ -93,8 +93,10 @@ const AdminDashboard = () => {
         setPendingRequests(pendingResponse.data);
         setDashboardData(dashboardResponse.data);
         setEmployees(employeesResponse.data);
+        console.log('AdminDashboard: Employees data:', employeesResponse.data);
         setLeaveTypes(leaveTypesResponse.data);
         setDepartments(departmentsResponse.data);
+        console.log('AdminDashboard: Departments data:', departmentsResponse.data);
         const activeEmployees = employeesResponse.data.filter(emp => emp.isActive !== false).length;
         const inactiveEmployees = employeesResponse.data.filter(emp => emp.isActive === false).length;
         const totalLeaveTypes = leaveTypesResponse.data.length;
@@ -497,7 +499,7 @@ const AdminDashboard = () => {
                                 {request.employee?.name || 'Unknown'}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
-                                {request.leaveType || 'N/A'}
+                                {request.leaveType?.name || 'N/A'}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 {formatDate(request.startDate)}
@@ -557,9 +559,16 @@ const AdminDashboard = () => {
           {activeTab === 'leave-types' && (
             <LeaveTypeManagement 
               leaveTypes={leaveTypes}
-              onLeaveTypeUpdate={() => {
+              onLeaveTypeUpdate={async () => {
                 // Refresh leave types data
-                getLeaveTypes().then(response => setLeaveTypes(response.data));
+                console.log('AdminDashboard: Refreshing leave types...');
+                try {
+                  const response = await getLeaveTypes();
+                  console.log('AdminDashboard: New leave types data:', response.data);
+                  setLeaveTypes(response.data);
+                } catch (error) {
+                  console.error('AdminDashboard: Error refreshing leave types:', error);
+                }
               }}
             />
           )}
@@ -615,7 +624,7 @@ const AdminDashboard = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                              {request.leaveType || 'N/A'}
+                              {request.leaveType?.name || 'N/A'}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">

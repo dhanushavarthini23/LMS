@@ -346,7 +346,7 @@ const EmployeeDashboard = () => {
           {/* History Tab */}
           {activeTab === 'history' && (
             <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="text-xl font-semibold mb-4">Leave History</h2>
+              
               <LeaveHistory onLeaveUpdate={fetchDashboardData} />
             </div>
           )}

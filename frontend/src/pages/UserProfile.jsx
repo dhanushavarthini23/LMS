@@ -26,6 +26,7 @@ const UserProfile = () => {
       relationship: '',
       phone: ''
     },
+    currentPassword: '',
     password: '',
     confirmPassword: ''
   });
@@ -102,9 +103,19 @@ const UserProfile = () => {
     e.preventDefault();
     
     // Password validation
-    if (formData.password && formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
+    if (formData.password) {
+      if (!formData.currentPassword) {
+        setError('Current password is required to change password');
+        return;
+      }
+      if (formData.password !== formData.confirmPassword) {
+        setError('New passwords do not match');
+        return;
+      }
+      if (formData.password.length < 6) {
+        setError('New password must be at least 6 characters long');
+        return;
+      }
     }
     
     try {
@@ -123,6 +134,7 @@ const UserProfile = () => {
       
       // Only include password if it's provided
       if (formData.password) {
+        updateData.currentPassword = formData.currentPassword;
         updateData.password = formData.password;
       }
       
@@ -131,6 +143,7 @@ const UserProfile = () => {
       setSuccess('Profile updated successfully');
       setFormData({
         ...formData,
+        currentPassword: '',
         password: '',
         confirmPassword: ''
       });
@@ -434,6 +447,22 @@ const UserProfile = () => {
                 <div className="md:col-span-2">
                   <h3 className="text-lg font-medium text-gray-900 mb-4">Change Password</h3>
                   <p className="text-sm text-gray-500 mb-4">Leave blank if you don't want to change your password</p>
+                </div>
+                
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="currentPassword">
+                    Current Password
+                  </label>
+                  <input
+                    className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md h-10 border px-3"
+                    id="currentPassword"
+                    type="password"
+                    name="currentPassword"
+                    value={formData.currentPassword}
+                    onChange={handleChange}
+                    placeholder="Enter your current password"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">Required only when changing password</p>
                 </div>
                 
                 <div>
