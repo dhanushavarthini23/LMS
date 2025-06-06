@@ -14,7 +14,7 @@ export const getEmployeeDashboardData = async (userId: number) => {
       where: { 
         employee: { id: userId } 
       },
-      relations: ['employee', 'approvals', 'approvals.approver', 'leaveType'],
+      relations: ['employee', 'employee.department', 'approvals', 'approvals.approver', 'leaveType'],
       order: { 
         createdAt: 'DESC' 
       }
@@ -53,7 +53,7 @@ export const getManagerDashboardData = async (managerId: number) => {
             id: In(teamMemberIds) 
           }
         },
-        relations: ['employee', 'approvals', 'approvals.approver', 'leaveType'],
+        relations: ['employee', 'employee.department', 'approvals', 'approvals.approver', 'leaveType'],
         order: { createdAt: 'DESC' },
       });
       console.log(`Found ${pendingRequests.length} pending requests for manager ${managerId}'s team`);
@@ -117,7 +117,7 @@ export const getHRDashboardData = async () => {
     let allRequests: LeaveRequest[] = [];
     try {
       allRequests = await leaveRepo.find({
-        relations: ['employee', 'approvals', 'approvals.approver', 'leaveType'],
+        relations: ['employee', 'employee.department', 'approvals', 'approvals.approver', 'leaveType'],
         order: { createdAt: 'DESC' },
       });
       console.log(`Found ${allRequests.length} leave requests`);
@@ -157,7 +157,7 @@ export const getHRDashboardData = async () => {
           { status: 'Pending' },
           { status: 'Manager Approved' }
         ],
-        relations: ['employee', 'approvals', 'approvals.approver', 'leaveType'],
+        relations: ['employee', 'employee.department', 'approvals', 'approvals.approver', 'leaveType'],
         order: { createdAt: 'DESC' },
       });
       const managerRequests = await leaveRepo.find({
@@ -167,7 +167,7 @@ export const getHRDashboardData = async () => {
             role: 'Manager'
           }
         },
-        relations: ['employee', 'approvals', 'approvals.approver', 'leaveType'],
+        relations: ['employee', 'employee.department', 'approvals', 'approvals.approver', 'leaveType'],
       });
       const existingIds = new Set(pendingRequests.map(req => req.id));
       for (const req of managerRequests) {

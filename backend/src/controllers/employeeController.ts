@@ -11,9 +11,11 @@ const employeeSchema = Joi.object({
   name: Joi.string().min(3).required(),
   email: Joi.string().email().required(),
   role: Joi.string().valid(...validRoles).required(),
-  username: Joi.string().min(3),
-  password: Joi.string().min(6),
-  departmentId: Joi.number().required().description('Department ID from departments table'),
+  username: Joi.string().min(3).optional(),
+  password: Joi.string().min(6).optional(),
+  department: Joi.string().required().description('Department name'),
+  managerId: Joi.number().optional().description('Manager ID (optional)'),
+  isActive: Joi.boolean().optional().default(true).description('Employee active status')
 });
 
 
@@ -65,18 +67,23 @@ export const createEmployee = async (
   request: Request,
   h: ResponseToolkit
 ): Promise<any> => {
+  console.log('Employee CREATE: Payload received:', request.payload);
+  
   const { error } = employeeSchema.validate(request.payload);
   if (error) {
+    console.log('Employee CREATE: Validation error:', error.details[0].message);
     return h.response({ error: error.details[0].message }).code(400);
   }
 
-  const { name, email, role, username, password, departmentId } = request.payload as {
+  const { name, email, role, username, password, department, managerId, isActive } = request.payload as {
     name: string;
     email: string;
     role: Role;
     username?: string;
     password?: string;
-    departmentId: number;
+    department: string;
+    managerId?: number;
+    isActive?: boolean;
   };
 
   try {
@@ -84,13 +91,22 @@ export const createEmployee = async (
     const departmentRepository = AppDataSource.getRepository(Department);
 
     
-    const departmentEntity = await departmentRepository.findOneBy({ id: departmentId, isActive: true });
+    const departmentEntity = await departmentRepository.findOneBy({ name: department, isActive: true });
     if (!departmentEntity) {
-      return h.response({ error: `Invalid department ID: ${departmentId}` }).code(400);
+      return h.response({ error: `Invalid department: ${department}` }).code(400);
     }
 
     let manager: Employee | undefined = undefined;
-    if (request.auth && request.auth.credentials) {
+    
+    // Handle manager assignment
+    if (managerId) {
+      // If managerId is provided, use it
+      manager = await employeeRepository.findOneBy({ id: managerId, role: 'Manager' }) || undefined;
+      if (!manager) {
+        return h.response({ error: `Invalid manager ID: ${managerId}` }).code(400);
+      }
+    } else if (request.auth && request.auth.credentials) {
+      // If no managerId provided but user is a Manager, assign to them
       const userId = (request.auth.credentials as any).id;
       const userRole = (request.auth.credentials as any).role;
       if (userRole === 'Manager') {
@@ -98,14 +114,20 @@ export const createEmployee = async (
       }
     }
 
+    // Hash the password
+    const saltRounds = 10;
+    const plainPassword = password || 'password123';
+    const hashedPassword = await bcrypt.hash(plainPassword, saltRounds);
+
     const newEmployee = employeeRepository.create({
       name,
       email,
       role,
       username: username || email.split('@')[0],
-      password: password || 'password123',
+      password: hashedPassword,
       department: departmentEntity,
-      manager
+      manager,
+      isActive: isActive !== undefined ? isActive : true
     });
 
     await employeeRepository.save(newEmployee);
@@ -143,7 +165,7 @@ export const updateEmployeeProfile = async (
   h: ResponseToolkit
 ): Promise<any> => {
   const employeeId = (request.auth.credentials as any).id;
-  const { name, email, phone, address, emergencyContact, password } = request.payload as any;
+  const { name, email, phone, address, emergencyContact, password, currentPassword } = request.payload as any;
 
   try {
     const employeeRepository = AppDataSource.getRepository(Employee);
@@ -161,6 +183,14 @@ export const updateEmployeeProfile = async (
     if (address) employee.address = address;
     if (emergencyContact) employee.emergencyContact = emergencyContact;
     if (password) {
+      // Verify current password if provided
+      if (currentPassword) {
+        const isCurrentPasswordValid = await bcrypt.compare(currentPassword, employee.password);
+        if (!isCurrentPasswordValid) {
+          return h.response({ error: 'Current password is incorrect' }).code(400);
+        }
+      }
+      
       const saltRounds = 10;
       employee.password = await bcrypt.hash(password, saltRounds);
     }

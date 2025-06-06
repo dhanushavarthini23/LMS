@@ -60,7 +60,9 @@ const employeeRoutes: ServerRoute[] = [
           role: Joi.string().valid('Employee', 'Manager', 'HR', 'Admin').required().description('Employee role'),
           username: Joi.string().min(3).optional().description('Username (defaults to email prefix if not provided)'),
           password: Joi.string().min(6).optional().description('Initial password (defaults to "password123" if not provided)'),
-          department: Joi.string().valid('IT', 'HR', 'Finance', 'Marketing', 'Operations', 'Sales', 'Engineering', 'Customer Support').required().description('Employee department')
+          department: Joi.string().valid('Information Technology', 'Human Resources', 'Finance', 'Marketing', 'Operations', 'Sales', 'Engineering', 'Customer Support').required().description('Employee department'),
+          managerId: Joi.number().optional().description('Manager ID (optional)'),
+          isActive: Joi.boolean().optional().default(true).description('Employee active status')
         })
       },
       plugins: {
@@ -168,7 +170,8 @@ const employeeRoutes: ServerRoute[] = [
             relationship: Joi.string().optional(),
             phone: Joi.string().optional()
           }).optional().description('Emergency contact information'),
-          password: Joi.string().min(6).optional().description('New password (optional)')
+          password: Joi.string().min(6).optional().description('New password (optional)'),
+          currentPassword: Joi.string().optional().description('Current password (required when changing password)')
         })
       },
       plugins: {

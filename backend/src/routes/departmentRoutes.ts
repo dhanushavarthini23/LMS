@@ -10,8 +10,8 @@ const departmentRoutes: ServerRoute[] = [
     options: {
       auth: 'jwt',
       tags: ['api', 'departments'],
-      description: 'Get all active departments',
-      notes: 'Returns all active departments with their details',
+      description: 'Get departments',
+      notes: 'Returns departments with their details. Admin and HR users see all departments, others see only active ones.',
       plugins: {
         'hapi-swagger': {
           responses: {
@@ -40,10 +40,14 @@ const departmentRoutes: ServerRoute[] = [
     },
     handler: async (request, h) => {
       try {
+        const userRole = (request.auth.credentials as any).role;
         const departmentRepo = AppDataSource.getRepository(Department);
         
+        // Admin and HR can see all departments, others only see active ones
+        const whereCondition = (userRole === 'Admin' || userRole === 'HR') ? {} : { isActive: true };
+        
         const departments = await departmentRepo.find({
-          where: { isActive: true },
+          where: whereCondition,
           relations: ['employees'],
           order: { name: 'ASC' }
         });

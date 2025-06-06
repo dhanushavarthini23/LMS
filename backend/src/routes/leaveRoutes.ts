@@ -432,7 +432,7 @@ const leaveRoutes: ServerRoute[] = [
     options: {
       tags: ['api', 'leave-requests'],
       description: 'Get pending leave requests',
-      notes: 'Returns pending leave requests based on user role. HR users see both Pending and Manager Approved requests. Managers only see Pending requests from their team members.',
+      notes: 'Returns pending leave requests based on user role. HR and Admin users see both Pending and Manager Approved requests. Managers only see Pending requests from their team members.',
       plugins: {
         'hapi-swagger': {
           responses: {
@@ -465,8 +465,8 @@ const leaveRoutes: ServerRoute[] = [
       
       let whereCondition = {};
       
-      if (userRole === 'HR') {
-        // HR users see both Pending and Manager Approved requests
+      if (userRole === 'HR' || userRole === 'Admin') {
+        // HR and Admin users see both Pending and Manager Approved requests
         whereCondition = [
           { status: 'Pending' },
           { status: 'Manager Approved' }
@@ -483,7 +483,7 @@ const leaveRoutes: ServerRoute[] = [
       
       const pending = await repo.find({
         where: whereCondition,
-        relations: ['employee', 'approvals', 'approvals.approver', 'leaveType'],
+        relations: ['employee', 'employee.department', 'approvals', 'approvals.approver', 'leaveType'],
         order: { createdAt: 'DESC' }
       });
       
@@ -548,7 +548,7 @@ const leaveRoutes: ServerRoute[] = [
       
       const allRequests = await repo.find({
         where: whereCondition,
-        relations: ['employee', 'approvals', 'approvals.approver', 'leaveType'],
+        relations: ['employee', 'employee.department', 'approvals', 'approvals.approver', 'leaveType'],
         order: { createdAt: 'DESC' }
       });
       

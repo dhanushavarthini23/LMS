@@ -181,14 +181,18 @@ const leaveTypeRoutes: ServerRoute[] = [
     handler: async (request, h) => {
       try {
         const userRole = (request.auth.credentials as any).role;
+        console.log('LeaveType CREATE: User role:', userRole);
+        console.log('LeaveType CREATE: Payload:', request.payload);
         
         // Check if user has admin privileges
         if (userRole !== 'Admin' && userRole !== 'HR') {
+          console.log('LeaveType CREATE: Access denied for role:', userRole);
           return h.response({ message: 'Admin or HR access required' }).code(403);
         }
 
         const leaveTypeRepo = AppDataSource.getRepository(LeaveType);
         const leaveTypeData = request.payload as any;
+        console.log('LeaveType CREATE: Creating leave type with data:', leaveTypeData);
         
         const leaveType = leaveTypeRepo.create(leaveTypeData);
         const savedLeaveType = await leaveTypeRepo.save(leaveType);

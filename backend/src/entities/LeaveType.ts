@@ -31,6 +31,12 @@ export class LeaveType {
   @Column({ default: true })
   isActive!: boolean;
 
+  @Column({ default: false })
+  carryForwardAllowed!: boolean;
+
+  @Column({ type: 'int', default: 0 })
+  maxCarryForward!: number;
+
   @OneToMany(() => LeaveRequest, (leaveRequest) => leaveRequest.leaveType)
   leaveRequests!: LeaveRequest[];
 
