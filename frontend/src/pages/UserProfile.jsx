@@ -5,6 +5,7 @@ import { jwtDecode } from 'jwt-decode';
 import { getEmployeeProfile, updateEmployeeProfile } from '../api/api';
 
 const UserProfile = () => {
+  console.log('UserProfile component loaded');
   const { authData } = useContext(AuthContext);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -34,7 +35,7 @@ const UserProfile = () => {
       try {
         const decoded = jwtDecode(authData.token);
         setUserId(decoded.id || decoded.userId || '');
-        fetchUserProfile(decoded.id || decoded.userId || '');
+        fetchUserProfile();
       } catch (error) {
         console.error('Error decoding token:', error);
         setError('Failed to authenticate user');
@@ -45,31 +46,21 @@ const UserProfile = () => {
     }
   }, [authData, navigate]);
 
-  const fetchUserProfile = async (id) => {
+  const fetchUserProfile = async () => {
     try {
       setLoading(true);
-      const userData = {
-        id: id,
-        name: 'John Doe',
-        email: 'john.doe@example.com',
-        phone: '123-456-7890',
-        department: 'Engineering',
-        position: 'Software Developer',
-        address: '123 Main St, Anytown, USA',
-        emergencyContact: {
-          name: 'Jane Doe',
-          relationship: 'Spouse',
-          phone: '987-654-3210'
-        }
-      };
+      console.log('Fetching user profile...');
+      const response = await getEmployeeProfile();
+      console.log('Profile response:', response);
+      const userData = response.data;
       
       setFormData({
         ...formData,
         name: userData.name || '',
         email: userData.email || '',
         phone: userData.phone || '',
-        department: userData.department || '',
-        position: userData.position || '',
+        department: userData.department?.name || userData.department || '',
+        position: userData.role || '',
         address: userData.address || '',
         emergencyContact: {
           name: userData.emergencyContact?.name || '',
@@ -81,7 +72,7 @@ const UserProfile = () => {
       setError('');
     } catch (error) {
       console.error('Error fetching user profile:', error);
-      setError('Failed to load user profile');
+      setError('Failed to load user profile. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -120,7 +111,22 @@ const UserProfile = () => {
       setSaving(true);
       setError('');
       setSuccess('');
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Prepare data for update (exclude password fields if empty)
+      const updateData = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        emergencyContact: formData.emergencyContact
+      };
+      
+      // Only include password if it's provided
+      if (formData.password) {
+        updateData.password = formData.password;
+      }
+      
+      await updateEmployeeProfile(updateData);
       
       setSuccess('Profile updated successfully');
       setFormData({
@@ -130,7 +136,7 @@ const UserProfile = () => {
       });
     } catch (error) {
       console.error('Error updating profile:', error);
-      setError('Failed to update profile');
+      setError('Failed to update profile. Please try again.');
     } finally {
       setSaving(false);
     }

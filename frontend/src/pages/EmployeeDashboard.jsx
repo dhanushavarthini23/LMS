@@ -20,20 +20,13 @@ const EmployeeDashboard = () => {
   const [showLeaveForm, setShowLeaveForm] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [userName, setUserName] = useState('');
-
-  
+ 
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      
-      // Fetch dashboard data
       const dashboardResponse = await getDashboardData();
       const rawData = dashboardResponse.data;
-      
-      // Process leave requests to create leave type distribution
       const leaveRequests = rawData.leaveRequests || [];
-      
-      // Count leave types
       const leaveTypeCount = {
         annual: 0,
         sick: 0,
@@ -42,7 +35,7 @@ const EmployeeDashboard = () => {
       };
       
       leaveRequests.forEach(leave => {
-        const type = leave.leaveType?.toLowerCase() || '';
+        const type = (leave.leaveType?.name || leave.leaveType || '').toLowerCase();
         if (type.includes('annual') || type.includes('vacation')) {
           leaveTypeCount.annual += 1;
         } else if (type.includes('sick')) {
@@ -53,8 +46,6 @@ const EmployeeDashboard = () => {
           leaveTypeCount.other += 1;
         }
       });
-      
-      // Create monthly trends data
       const monthlyData = Array(12).fill(0);
       leaveRequests.forEach(leave => {
         if (leave.startDate) {
@@ -62,8 +53,6 @@ const EmployeeDashboard = () => {
           monthlyData[month] += 1;
         }
       });
-      
-      // Create enhanced dashboard data
       const enhancedData = {
         ...rawData,
         leaveTypeDistribution: leaveTypeCount,
@@ -75,7 +64,24 @@ const EmployeeDashboard = () => {
       // Fetch leave balance
       const balanceResponse = await getLeaveBalance();
       console.log('Leave balance response:', balanceResponse.data);
-      setLeaveBalance(balanceResponse.data.leaveBalance);
+      // Handle both old format (number) and new format (object)
+      const balance = balanceResponse.data.leaveBalance;
+      if (typeof balance === 'object' && balance !== null && balance.balances) {
+        // New comprehensive format
+        setLeaveBalance(balance);
+      } else if (typeof balance === 'object' && balance !== null) {
+        // Old object format
+        setLeaveBalance(balance);
+      } else {
+        // Fallback for very old format (just a number)
+        setLeaveBalance({
+          annual: balance || 20,
+          sick: 10,
+          personal: 5,
+          totalTaken: 0,
+          totalEntitlement: 35
+        });
+      }
       
       setError('');
     } catch (error) {
@@ -88,7 +94,6 @@ const EmployeeDashboard = () => {
 
   useEffect(() => {
     if (authData?.token) {
-      // Get user name from token
       try {
         const decoded = jwtDecode(authData.token);
         console.log('Decoded token:', decoded); 
@@ -114,85 +119,114 @@ const EmployeeDashboard = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">Employee Dashboard</h1>
-          <p className="text-gray-600">Welcome, {userName}</p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100">
+      <div className="max-w-7xl mx-auto p-6">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 mb-8 border border-white/20">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent flex items-center">
+                <svg className="w-10 h-10 mr-3 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                Employee Dashboard
+              </h1>
+              <p className="text-gray-600 mt-2 text-lg">Welcome back, <span className="font-semibold text-indigo-600">{userName}</span></p>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-6 py-3 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+              </svg>
+              Logout
+            </button>
+          </div>
         </div>
-        <button
-          onClick={handleLogout}
-          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
-        >
-          Logout
-        </button>
-      </div>
 
-      {/* Navigation Tabs */}
-      <div className="border-b border-gray-200 mb-6">
-        <nav className="-mb-px flex space-x-8">
-          <button
-            onClick={() => setActiveTab('dashboard')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'dashboard'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Dashboard
-          </button>
-          <button
-            onClick={() => setActiveTab('calendar')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'calendar'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Leave Calendar
-          </button>
-          <button
-            onClick={() => setActiveTab('history')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'history'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Leave History
-          </button>
-          <button
-            onClick={() => setActiveTab('policies')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'policies'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Leave Policies
-          </button>
-          <button
-            onClick={() => setActiveTab('analytics')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'analytics'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Analytics
-          </button>
-          <button
-            onClick={() => setActiveTab('forecasting')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'forecasting'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Leave Forecasting
-          </button>
-        </nav>
-      </div>
+        {/* Navigation Tabs */}
+        <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-2 mb-8 shadow-lg border border-white/20">
+          <nav className="flex space-x-2 overflow-x-auto">
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className={`px-6 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all duration-200 ${
+                activeTab === 'dashboard'
+                  ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg transform scale-105'
+                  : 'text-gray-600 hover:text-indigo-600 hover:bg-white/50'
+              }`}
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              Dashboard
+            </button>
+            <button
+              onClick={() => setActiveTab('calendar')}
+              className={`px-6 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all duration-200 ${
+                activeTab === 'calendar'
+                  ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg transform scale-105'
+                  : 'text-gray-600 hover:text-indigo-600 hover:bg-white/50'
+              }`}
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Leave Calendar
+            </button>
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`px-6 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all duration-200 ${
+                activeTab === 'history'
+                  ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg transform scale-105'
+                  : 'text-gray-600 hover:text-indigo-600 hover:bg-white/50'
+              }`}
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Leave History
+            </button>
+            <button
+              onClick={() => setActiveTab('policies')}
+              className={`px-6 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all duration-200 ${
+                activeTab === 'policies'
+                  ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg transform scale-105'
+                  : 'text-gray-600 hover:text-indigo-600 hover:bg-white/50'
+              }`}
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Leave Policies
+            </button>
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className={`px-6 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all duration-200 ${
+                activeTab === 'analytics'
+                  ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg transform scale-105'
+                  : 'text-gray-600 hover:text-indigo-600 hover:bg-white/50'
+              }`}
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              Analytics
+            </button>
+            <button
+              onClick={() => setActiveTab('forecasting')}
+              className={`px-6 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all duration-200 ${
+                activeTab === 'forecasting'
+                  ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg transform scale-105'
+                  : 'text-gray-600 hover:text-indigo-600 hover:bg-white/50'
+              }`}
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+              Leave Forecasting
+            </button>
+          </nav>
+        </div>
 
       {loading && activeTab === 'dashboard' ? (
         <div className="flex justify-center items-center h-40">
@@ -212,18 +246,38 @@ const EmployeeDashboard = () => {
                 {/* Leave Balance Card */}
                 <div className="bg-white p-4 rounded shadow">
                   <h2 className="text-lg font-semibold mb-2">Leave Balance</h2>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>Annual Leave:</span>
-                      <span className="font-bold">{leaveBalance?.annual || 20} days</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Sick Leave:</span>
-                      <span className="font-bold">{leaveBalance?.sick || 10} days</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Personal Leave:</span>
-                      <span className="font-bold">{leaveBalance?.personal || 5} days</span>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {leaveBalance?.balances ? (
+                      Object.entries(leaveBalance.balances).map(([leaveType, balance]) => (
+                        <div key={leaveType} className="flex justify-between">
+                          <span className="text-sm">{leaveType}:</span>
+                          <span className="font-bold text-sm">
+                            {balance.remaining === 'N/A' ? 'Case by case' : `${balance.remaining} days`}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      // Fallback for old format
+                      <>
+                        <div className="flex justify-between">
+                          <span>Annual Leave:</span>
+                          <span className="font-bold">{leaveBalance?.annual || 20} days</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Sick Leave:</span>
+                          <span className="font-bold">{leaveBalance?.sick || 10} days</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Personal Leave:</span>
+                          <span className="font-bold">{leaveBalance?.personal || 5} days</span>
+                        </div>
+                      </>
+                    )}
+                    <div className="border-t pt-2 mt-2">
+                      <div className="flex justify-between font-semibold">
+                        <span>Total Taken:</span>
+                        <span>{leaveBalance?.totalTaken || 0} days</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -273,7 +327,7 @@ const EmployeeDashboard = () => {
               {/* Recent Leave Requests */}
               <div className="mt-8 bg-white shadow rounded-lg p-6">
                 <h2 className="text-xl font-semibold mb-4">Recent Leave Requests</h2>
-                <LeaveHistory limit={5} />
+                <LeaveHistory limit={5} onLeaveUpdate={fetchDashboardData} />
                 <div className="mt-4 text-center">
                   <button
                     onClick={() => setActiveTab('history')}
@@ -293,7 +347,7 @@ const EmployeeDashboard = () => {
           {activeTab === 'history' && (
             <div className="bg-white shadow rounded-lg p-6">
               <h2 className="text-xl font-semibold mb-4">Leave History</h2>
-              <LeaveHistory />
+              <LeaveHistory onLeaveUpdate={fetchDashboardData} />
             </div>
           )}
 
@@ -307,6 +361,7 @@ const EmployeeDashboard = () => {
           {activeTab === 'forecasting' && <LeaveForecasting leaveBalance={leaveBalance} />}
         </>
       )}
+      </div>
     </div>
   );
 };

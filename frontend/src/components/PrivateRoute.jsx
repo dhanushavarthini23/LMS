@@ -30,7 +30,9 @@ const PrivateRoute = ({ children, allowedRoles }) => {
 
   // If allowedRoles is specified, check for the specific roles
   if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
-    if (userRole === 'HR') {
+    if (userRole === 'Admin') {
+      return <Navigate to="/admin-dashboard" />;
+    } else if (userRole === 'HR') {
       return <Navigate to="/hr-dashboard" />;
     } else if (userRole === 'Manager') {
       return <Navigate to="/manager-dashboard" />;

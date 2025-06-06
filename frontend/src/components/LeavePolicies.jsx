@@ -63,37 +63,61 @@ const LeavePolicies = () => {
     },
     {
       id: 4,
-      title: 'Compassionate Leave',
-      summary: 'Leave entitlements for bereavement and family emergencies.',
+      title: 'Personal Leave',
+      summary: 'Personal leave entitlements for personal matters.',
       content: `
-        <h3>Compassionate Leave Policy</h3>
-        <p>Employees are entitled to up to 5 days of paid compassionate leave per year in the event of death or serious illness of an immediate family member.</p>
-        <p>Immediate family members include spouse, children, parents, siblings, grandparents, and in-laws.</p>
-        <h4>Requesting Compassionate Leave:</h4>
+        <h3>Personal Leave Policy</h3>
+        <p>Employees are entitled to 5 days of paid personal leave per year for personal matters that cannot be scheduled outside of work hours.</p>
+        <p>Personal leave can be used for appointments, family matters, or other personal obligations.</p>
+        <h4>Requesting Personal Leave:</h4>
+        <ol>
+          <li>Submit personal leave request through the system</li>
+          <li>Provide at least 24 hours notice when possible</li>
+          <li>Manager approval is required</li>
+        </ol>
+        <p>Personal leave cannot be carried forward to the next year.</p>
+      `
+    },
+    {
+      id: 5,
+      title: 'Emergency Leave',
+      summary: 'Leave for emergency situations requiring immediate time off.',
+      content: `
+        <h3>Emergency Leave Policy</h3>
+        <p>Employees are entitled to up to 3 days of paid emergency leave per year for unexpected situations requiring immediate time off.</p>
+        <p>Emergency leave covers situations such as family emergencies, natural disasters, or other unforeseen circumstances.</p>
+        <h4>Requesting Emergency Leave:</h4>
         <ol>
           <li>Notify your manager as soon as possible</li>
-          <li>Submit a compassionate leave request through the system</li>
-          <li>Provide supporting documentation if requested</li>
+          <li>Submit an emergency leave request through the system</li>
+          <li>Provide supporting documentation when available</li>
         </ol>
         <p>Additional unpaid leave may be granted in exceptional circumstances at management's discretion.</p>
       `
     },
     {
-      id: 5,
-      title: 'Study Leave',
-      summary: 'Leave options for professional development and education.',
+      id: 6,
+      title: 'Other Leave Types',
+      summary: 'Special leave types handled on a case-by-case basis.',
       content: `
-        <h3>Study Leave Policy</h3>
-        <p>Employees pursuing job-related education may be eligible for up to 10 days of paid study leave per year.</p>
-        <p>Study leave can be used for exam preparation, attending classes, or completing assignments.</p>
-        <h4>Eligibility Criteria:</h4>
+        <h3>Other Leave Types Policy</h3>
+        <p>For special circumstances not covered by standard leave categories, employees may request other types of leave.</p>
+        <p>These requests are evaluated on a case-by-case basis and may include:</p>
         <ul>
-          <li>Course of study must be relevant to the employee's current role or career path within the company</li>
-          <li>Employee must have completed at least 6 months of continuous service</li>
-          <li>Academic performance must be satisfactory</li>
-          <li>Business needs must allow for the absence</li>
+          <li>Study leave for professional development</li>
+          <li>Sabbatical leave for long-term projects</li>
+          <li>Volunteer leave for community service</li>
+          <li>Religious or cultural observance leave</li>
+          <li>Extended medical leave beyond sick leave entitlement</li>
         </ul>
-        <p>Study leave requests should be submitted at least 4 weeks in advance with course details and schedule.</p>
+        <h4>Application Process:</h4>
+        <ol>
+          <li>Submit a detailed request explaining the nature and duration of leave needed</li>
+          <li>Provide supporting documentation where applicable</li>
+          <li>Allow sufficient time for review and approval process</li>
+          <li>Discuss coverage arrangements for your responsibilities</li>
+        </ol>
+        <p>Approval is at management's discretion and depends on business needs and individual circumstances.</p>
       `
     }
   ];

@@ -187,8 +187,6 @@ const LeaveCalendar = () => {
 
   // Generate calendar days
   const calendarDays = [];
-  
-  // Add empty cells for days before the first day of the month
   for (let i = 0; i < firstDayOfMonth; i++) {
     calendarDays.push(<div key={`empty-${i}`} className="h-24 border border-gray-200 bg-gray-50"></div>);
   }
@@ -197,14 +195,34 @@ const LeaveCalendar = () => {
   for (let day = 1; day <= daysInMonth; day++) {
     const dateStr = formatDate(year, currentMonth.getMonth(), day);
     const leavesForDay = getLeavesForDate(year, currentMonth.getMonth(), day);
-    const isToday = new Date().toDateString() === new Date(dateStr).toDateString();
+    const currentDate = new Date(year, currentMonth.getMonth(), day);
+    const isToday = new Date().toDateString() === currentDate.toDateString();
+    const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6; // Sunday or Saturday
+    
+    let dayClass = 'h-24 border border-gray-200 p-1 overflow-y-auto';
+    
+    if (isToday) {
+      dayClass += ' bg-blue-50 border-blue-300';
+    } else if (isWeekend) {
+      dayClass += ' bg-pink-50 border-pink-200';
+    }
     
     calendarDays.push(
       <div 
         key={day} 
-        className={`h-24 border border-gray-200 p-1 overflow-y-auto ${isToday ? 'bg-blue-50' : ''}`}
+        className={dayClass}
       >
-        <div className="font-semibold text-sm mb-1">{day}</div>
+        <div className={`font-semibold text-sm mb-1 flex items-center justify-between ${isWeekend ? 'text-red-600' : ''}`}>
+          <span>{day}</span>
+          {isWeekend && (
+            <span className="text-xs bg-pink-100 text-pink-600 px-1 rounded">
+              {currentDate.getDay() === 0 ? 'SUN' : 'SAT'}
+            </span>
+          )}
+        </div>
+        {isWeekend && (
+          <div className="text-xs text-pink-500 mb-1 font-medium">Weekend</div>
+        )}
         {leavesForDay.map(leave => (
           <div 
             key={`${day}-${leave.id}`} 
@@ -312,18 +330,32 @@ const LeaveCalendar = () => {
           )}
           
           {/* Legend */}
-          <div className="mt-4 flex flex-wrap gap-4">
-            <div className="flex items-center">
-              <div className="w-4 h-4 bg-green-100 rounded mr-2"></div>
-              <span className="text-sm">Annual Leave</span>
+          <div className="mt-4 space-y-2">
+            <h4 className="text-sm font-medium text-gray-700">Legend:</h4>
+            <div className="flex flex-wrap gap-4">
+              <div className="flex items-center">
+                <div className="w-4 h-4 bg-green-100 rounded mr-2"></div>
+                <span className="text-sm">Annual Leave</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-4 h-4 bg-red-100 rounded mr-2"></div>
+                <span className="text-sm">Sick Leave</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-4 h-4 bg-yellow-100 rounded mr-2"></div>
+                <span className="text-sm">Personal Leave</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-4 h-4 bg-red-50 border border-red-200 rounded mr-2"></div>
+                <span className="text-sm">Weekends (Sat/Sun)</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-4 h-4 bg-blue-50 border border-blue-300 rounded mr-2"></div>
+                <span className="text-sm">Today</span>
+              </div>
             </div>
-            <div className="flex items-center">
-              <div className="w-4 h-4 bg-red-100 rounded mr-2"></div>
-              <span className="text-sm">Sick Leave</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-4 h-4 bg-yellow-100 rounded mr-2"></div>
-              <span className="text-sm">Personal Leave</span>
+            <div className="text-xs text-gray-500 mt-2">
+              💡 Weekends are automatically excluded from leave calculations
             </div>
           </div>
         </>

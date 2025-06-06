@@ -1,27 +1,47 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { AuthContext } from '../context/AuthContext';
-import { createEmployee } from '../api/api';
+import { createEmployee, getDepartments } from '../api/api';
 
 const EmployeeForm = ({ onSuccess }) => {
   const { authData } = useContext(AuthContext);
   const { register, handleSubmit, reset, formState: { errors } } = useForm();
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [departments, setDepartments] = useState([]);
+  const [loadingDepartments, setLoadingDepartments] = useState(true);
+
+  
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        setLoadingDepartments(true);
+        const response = await getDepartments();
+        setDepartments(response.data);
+      } catch (error) {
+        console.error('Error fetching departments:', error);
+        setSubmitError('Failed to load departments. Please refresh the page.');
+      } finally {
+        setLoadingDepartments(false);
+      }
+    };
+
+    fetchDepartments();
+  }, []);
 
   const onSubmit = async (data) => {
     setLoading(true);
     setSubmitError('');
     
     try {
-      // Format the data according to the backend API
+      
       const formattedData = {
         name: data.name,
         email: data.email,
         role: data.role,
-        username: data.email.split('@')[0], // Generate username from email
-        password: 'password123', // Default password
-        department: data.department
+        username: data.email.split('@')[0], 
+        password: 'password123', 
+        departmentId: parseInt(data.departmentId)
       };
       
       await createEmployee(formattedData);
@@ -96,23 +116,23 @@ const EmployeeForm = ({ onSuccess }) => {
         </div>
         
         <div>
-          <label htmlFor="department" className="block text-sm font-medium text-gray-700">Department</label>
+          <label htmlFor="departmentId" className="block text-sm font-medium text-gray-700">Department</label>
           <select
-            id="department"
-            {...register('department', { required: 'Department is required' })}
+            id="departmentId"
+            {...register('departmentId', { required: 'Department is required' })}
             className="mt-1 block w-full p-2 border rounded-md"
+            disabled={loadingDepartments}
           >
-            <option value="">Select department</option>
-            <option value="IT">IT</option>
-            <option value="HR">HR</option>
-            <option value="Finance">Finance</option>
-            <option value="Marketing">Marketing</option>
-            <option value="Operations">Operations</option>
-            <option value="Sales">Sales</option>
-            <option value="Engineering">Engineering</option>
-            <option value="Customer Support">Customer Support</option>
+            <option value="">
+              {loadingDepartments ? 'Loading departments...' : 'Select department'}
+            </option>
+            {departments.map((department) => (
+              <option key={department.id} value={department.id}>
+                {department.name} ({department.code})
+              </option>
+            ))}
           </select>
-          {errors.department && <p className="text-red-500 text-sm">{errors.department.message}</p>}
+          {errors.departmentId && <p className="text-red-500 text-sm">{errors.departmentId.message}</p>}
         </div>
         
         <div className="pt-2">

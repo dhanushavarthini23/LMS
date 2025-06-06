@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000'; // Backend URL
+const API_URL = 'http://localhost:5000'; 
 const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -17,8 +17,6 @@ api.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 );
-
-// Authentication
 export const login = async (username, password) => {
   try {
     const response = await axios.post(`${API_URL}/login`, { username, password });
@@ -41,11 +39,18 @@ export const createLeaveRequest = async (data) => {
   return api.post('/api/leave-requests', data);
 };
 
+export const cancelLeaveRequest = async (leaveId) => {
+  return api.delete(`/api/leave-requests/${leaveId}`);
+};
+
 export const getLeaveHistory = async () => {
   return api.get('/api/leave-history');
 };
 
-export const getLeaveBalance = async () => {
+export const getLeaveBalance = async (employeeId) => {
+  if (employeeId) {
+    return api.get(`/api/leave-balance/${employeeId}`);
+  }
   return api.get('/api/leave-balance');
 };
 
@@ -53,7 +58,14 @@ export const getLeaveBalance = async () => {
 export const getPendingLeaveRequests = async () => {
   return api.get('/api/leave-requests/pending');
 };
+export const getEmployeeLeaveBalances = async () => {
+  return api.get('/api/employees/leave-balances');
+};
 
+// Validate leave request dates
+export const validateLeaveRequest = async (startDate, endDate) => {
+  return api.post('/api/leaves/validate', { startDate, endDate });
+};
 export const getAllLeaveRequests = async () => {
   return api.get('/api/leave-requests/all');
 };
@@ -82,12 +94,20 @@ export const getEmployees = async () => {
   return api.get('/api/employees');
 };
 
-export const getEmployeeProfile = async (id) => {
-  return api.get(`/api/employees/${id}`);
-};
+export const getEmployeeProfile = async () => {
+return api.get('/api/employees/profile');
+ };
 
 export const createEmployee = async (employeeData) => {
   return api.post('/api/employees', employeeData);
+};
+
+export const updateEmployeeStatus = async (employeeId, isActive) => {
+  return api.put(`/api/employees/${employeeId}/status`, { isActive });
+};
+
+export const getSystemStats = async () => {
+  return api.get('/api/admin/stats');
 };
 
 // Notifications
@@ -114,6 +134,40 @@ export const getTeamLeaves = async (year, month) => {
 };
 
 // User Profile
-export const updateEmployeeProfile = async (id, profileData) => {
-  return api.put(`/api/employees/${id}/profile`, profileData);
+export const updateEmployeeProfile = async (profileData) => {
+  return api.put('/api/employees/profile', profileData);
+};
+
+// Leave Types
+export const getLeaveTypes = async () => {
+  return api.get('/api/leave-types');
+};
+
+export const getLeaveType = async (id) => {
+  return api.get(`/api/leave-types/${id}`);
+};
+
+export const createLeaveType = async (leaveTypeData) => {
+  return api.post('/api/leave-types', leaveTypeData);
+};
+
+export const updateLeaveType = async (id, leaveTypeData) => {
+  return api.put(`/api/leave-types/${id}`, leaveTypeData);
+};
+
+// Departments
+export const getDepartments = async () => {
+  return api.get('/api/departments');
+};
+
+export const getDepartment = async (id) => {
+  return api.get(`/api/departments/${id}`);
+};
+
+export const createDepartment = async (departmentData) => {
+  return api.post('/api/departments', departmentData);
+};
+
+export const updateDepartment = async (id, departmentData) => {
+  return api.put(`/api/departments/${id}`, departmentData);
 };

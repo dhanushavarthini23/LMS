@@ -68,8 +68,6 @@ const DashboardCharts = ({ dashboardData }) => {
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
   ];
-
-  
   const monthlyData = {
     labels: months,
     datasets: [

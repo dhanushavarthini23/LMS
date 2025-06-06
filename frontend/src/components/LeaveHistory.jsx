@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { getLeaveHistory } from '../api/api';
+import { getLeaveHistory, cancelLeaveRequest } from '../api/api';
 
-const LeaveHistory = ({ limit }) => {
+const LeaveHistory = ({ limit, onLeaveUpdate }) => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [cancellingId, setCancellingId] = useState(null);
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -12,8 +13,14 @@ const LeaveHistory = ({ limit }) => {
         setLoading(true);
         const response = await getLeaveHistory();
         
+        console.log('Leave history response:', response.data);
         
         if (Array.isArray(response.data)) {
+          // Log the first item to check its structure
+          if (response.data.length > 0) {
+            console.log('First leave item:', response.data[0]);
+            console.log('Leave type:', response.data[0].leaveType);
+          }
           setHistory(response.data);
         } else {
           console.warn('Leave history response is not an array:', response.data);
@@ -48,6 +55,35 @@ const LeaveHistory = ({ limit }) => {
     return `${diffDays} day${diffDays !== 1 ? 's' : ''}`;
   };
 
+  const handleCancelRequest = async (leaveId) => {
+    if (!window.confirm('Are you sure you want to cancel this leave request?')) {
+      return;
+    }
+
+    try {
+      setCancellingId(leaveId);
+      await cancelLeaveRequest(leaveId);
+      const response = await getLeaveHistory();
+      if (Array.isArray(response.data)) {
+        setHistory(response.data);
+      }
+      if (onLeaveUpdate) {
+        onLeaveUpdate();
+      }
+      
+      setError('');
+    } catch (error) {
+      console.error('Error cancelling leave request:', error);
+      setError('Failed to cancel leave request. Please try again.');
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
+  const canCancelRequest = (leave) => {
+    return leave.status === 'Pending';
+  };
+
   return (
     <div className={limit ? "" : "bg-white shadow rounded-lg p-6"}>
       {!limit && <h2 className="text-xl font-semibold mb-4">Leave History</h2>}
@@ -80,13 +116,15 @@ const LeaveHistory = ({ limit }) => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Date</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {(limit ? history.slice(0, limit) : history).map((leave) => (
                 <tr key={leave.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {leave.leaveType || 'N/A'}
+                    {leave.leaveType?.name || 
+                     (typeof leave.leaveType === 'string' ? leave.leaveType : 'N/A')}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {formatDate(leave.startDate)}
@@ -107,6 +145,21 @@ const LeaveHistory = ({ limit }) => {
                     }`}>
                       {leave.status}
                     </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {canCancelRequest(leave) ? (
+                      <button
+                        onClick={() => handleCancelRequest(leave.id)}
+                        disabled={cancellingId === leave.id}
+                        className={`text-red-600 hover:text-red-900 text-sm font-medium ${
+                          cancellingId === leave.id ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                      >
+                        {cancellingId === leave.id ? 'Cancelling...' : 'Cancel'}
+                      </button>
+                    ) : (
+                      <span className="text-gray-400 text-sm">-</span>
+                    )}
                   </td>
                 </tr>
               ))}

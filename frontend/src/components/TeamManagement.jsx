@@ -19,8 +19,11 @@ const TeamManagement = () => {
         const enhancedTeamData = response.data.map(employee => ({
           ...employee,
           position: employee.position || employee.role || 'Staff',
-          department: employee.department || 'IT', // Default to IT
-          leaveBalance: employee.leaveBalance || 20 // Default to 20
+          department: employee.department?.name || employee.department || 'General',
+          annualLeaveBalance: employee.annualLeaveBalance || 20,
+          sickLeaveBalance: employee.sickLeaveBalance || 10,
+          personalLeaveBalance: employee.personalLeaveBalance || 5,
+          totalLeaveBalance: (employee.annualLeaveBalance || 20) + (employee.sickLeaveBalance || 10) + (employee.personalLeaveBalance || 5)
         }));
         
         setTeamMembers(enhancedTeamData);
@@ -40,28 +43,15 @@ const TeamManagement = () => {
     try {
       setLoading(true);
       const employee = teamMembers.find(emp => emp.id === employeeId);
+      const response = await getLeaveBalance(employeeId);
+      const balance = response.data.leaveBalance || response.data;
       
-      
-      const totalLeaveBalance = employee.leaveBalance || 20;
-      console.log(`Setting leave balance for ${employee.name}: ${totalLeaveBalance}`);
-      
-      
-      
-      const annual = Math.round(totalLeaveBalance * 0.6);
-      const sick = Math.round(totalLeaveBalance * 0.25);
-      const personal = totalLeaveBalance - annual - sick;
-      
-      setLeaveBalance({
-        annual,
-        sick,
-        personal
-      });
-      
+      setLeaveBalance(balance);
       setSelectedEmployee(employee);
       setShowLeaveBalance(true);
       setError('');
     } catch (error) {
-      console.error('Error setting leave balance:', error);
+      console.error('Error fetching leave balance:', error);
       setError('Failed to load leave balance. Please try again later.');
     } finally {
       setLoading(false);
@@ -116,9 +106,17 @@ const TeamManagement = () => {
                       {employee.email}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                        {employee.leaveBalance !== undefined ? employee.leaveBalance : 30} days
-                      </span>
+                      <div className="flex flex-col space-y-1">
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                          Annual: {employee.annualLeaveBalance !== undefined ? employee.annualLeaveBalance : employee.leaveBalance || 20} days
+                        </span>
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                          Sick: {employee.sickLeaveBalance !== undefined ? employee.sickLeaveBalance : 10} days
+                        </span>
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
+                          Personal: {employee.personalLeaveBalance !== undefined ? employee.personalLeaveBalance : 5} days
+                        </span>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex space-x-2">
@@ -159,19 +157,46 @@ const TeamManagement = () => {
                     <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                      <span className="font-medium">Annual Leave:</span>
-                      <span className="font-bold text-blue-600">{leaveBalance?.annual || 12} days</span>
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {leaveBalance?.balances ? (
+                      Object.entries(leaveBalance.balances).map(([leaveType, balance]) => (
+                        <div key={leaveType} className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                          <div className="flex flex-col">
+                            <span className="font-medium text-sm">{leaveType}:</span>
+                            <span className="text-xs text-gray-600">
+                              Taken: {balance.taken} | Entitlement: {balance.entitlement}
+                            </span>
+                          </div>
+                          <span className="font-bold text-blue-600">
+                            {balance.remaining === 'N/A' ? 'Case by case' : `${balance.remaining} days`}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      // Fallback for old format
+                      <>
+                        <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                          <span className="font-medium">Annual Leave:</span>
+                          <span className="font-bold text-blue-600">{leaveBalance?.annual || 20} days</span>
+                        </div>
+                        <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                          <span className="font-medium">Sick Leave:</span>
+                          <span className="font-bold text-blue-600">{leaveBalance?.sick || 10} days</span>
+                        </div>
+                        <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                          <span className="font-medium">Personal Leave:</span>
+                          <span className="font-bold text-blue-600">{leaveBalance?.personal || 5} days</span>
+                        </div>
+                      </>
+                    )}
+                    
+                    <div className="border-t pt-3 mt-4">
+                      <div className="flex justify-between items-center p-3 bg-blue-50 rounded font-semibold">
+                        <span>Total Taken:</span>
+                        <span className="text-blue-800">{leaveBalance?.totalTaken || 0} days</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                      <span className="font-medium">Sick Leave:</span>
-                      <span className="font-bold text-blue-600">{leaveBalance?.sick || 5} days</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                      <span className="font-medium">Personal Leave:</span>
-                      <span className="font-bold text-blue-600">{leaveBalance?.personal || 3} days</span>
-                    </div>
+                    
                     <div className="mt-6">
                       <button
                         onClick={handleCloseLeaveBalance}

@@ -33,7 +33,9 @@ const LoginPage = () => {
             const role = decoded.role || '';
             
             // Navigate based on role
-            if (role === 'HR') {
+            if (role === 'Admin') {
+              navigate('/admin-dashboard');
+            } else if (role === 'HR') {
               navigate('/hr-dashboard');
             } else if (role === 'Manager') {
               navigate('/manager-dashboard');

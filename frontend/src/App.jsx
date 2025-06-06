@@ -4,10 +4,12 @@ import NavBar from './components/NavBar';
 import ManagerDashboard from './pages/ManagerDashboard';
 import HRDashboard from './pages/HRDashboard';
 import EmployeeDashboard from './pages/EmployeeDashboard';
+import AdminDashboard from './pages/AdminDashboard';
 import Login from './pages/Login';
-import PrivateRoute from './components/PrivateRoute'; // Protecting routes
+import PrivateRoute from './components/PrivateRoute';
 import LeaveRequestsPage from './pages/LeaveRequestsPage';
 import UserProfile from './pages/UserProfile';
+import Settings from './pages/Settings';
 
 // Layout wrapper component
 const AppLayout = ({ children }) => {
@@ -49,7 +51,7 @@ const App = () => {
           path="/leave-requests"
           element={
             <AppLayout>
-              <PrivateRoute allowedRoles={['HR', 'Manager', 'Employee']}>
+              <PrivateRoute allowedRoles={['HR', 'Manager', 'Employee', 'Admin']}>
                 <LeaveRequestsPage />
               </PrivateRoute>
             </AppLayout>
@@ -86,11 +88,31 @@ const App = () => {
           }
         />
         <Route
+          path="/admin-dashboard"
+          element={
+            <AppLayout>
+              <PrivateRoute allowedRoles={['Admin']}>
+                <AdminDashboard />
+              </PrivateRoute>
+            </AppLayout>
+          }
+        />
+        <Route
           path="/profile"
           element={
             <AppLayout>
-              <PrivateRoute allowedRoles={['HR', 'Manager', 'Employee']}>
+              <PrivateRoute allowedRoles={['HR', 'Manager', 'Employee', 'Admin']}>
                 <UserProfile />
+              </PrivateRoute>
+            </AppLayout>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <AppLayout>
+              <PrivateRoute allowedRoles={['HR', 'Manager', 'Employee', 'Admin']}>
+                <Settings />
               </PrivateRoute>
             </AppLayout>
           }
