@@ -1,6 +1,7 @@
 import { Request, ResponseToolkit } from '@hapi/hapi';
+import logger from '../utils/logger';
 
 export const logRequest = async (request: Request, h: ResponseToolkit) => {
-  console.log(`${new Date().toISOString()} - ${request.method.toUpperCase()} ${request.path}`);
+  logger.http(`${request.method.toUpperCase()} ${request.path}`);
   return h.continue; 
 };

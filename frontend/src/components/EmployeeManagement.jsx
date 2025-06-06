@@ -36,7 +36,6 @@ const EmployeeManagement = ({ employees, departments, onEmployeeUpdate }) => {
     setSuccess('');
 
     try {
-      console.log('Creating employee with data:', newEmployee);
       await createEmployee(newEmployee);
       setSuccess('Employee created successfully!');
       setNewEmployee({

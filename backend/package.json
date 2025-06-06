@@ -34,7 +34,8 @@
         "jsonwebtoken": "^9.0.2",
         "pg": "^8.15.6",
         "reflect-metadata": "^0.2.2",
-        "typeorm": "^0.3.22"
+        "typeorm": "^0.3.22",
+        "winston": "^3.17.0"
     },
     "devDependencies": {
         "@types/bcrypt": "^5.0.2",

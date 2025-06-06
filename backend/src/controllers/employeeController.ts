@@ -4,6 +4,7 @@ import bcrypt from 'bcrypt';
 import { Employee } from '../entities/Employee';
 import { Department } from '../entities/Department'; 
 import AppDataSource from '../data-source';
+import logger from '../utils/logger';
 const validRoles = ['Employee', 'Manager', 'HR', 'Admin'] as const;
 type Role = (typeof validRoles)[number];
 
@@ -57,7 +58,7 @@ export const getEmployees = async (
 
     return h.response(employees).code(200);
   } catch (err) {
-    console.error('Error fetching employees:', err);
+    logger.error('Error fetching employees:', err);
     return h.response({ error: 'Server error' }).code(500);
   }
 };
@@ -67,11 +68,11 @@ export const createEmployee = async (
   request: Request,
   h: ResponseToolkit
 ): Promise<any> => {
-  console.log('Employee CREATE: Payload received:', request.payload);
+  logger.info('Creating new employee');
   
   const { error } = employeeSchema.validate(request.payload);
   if (error) {
-    console.log('Employee CREATE: Validation error:', error.details[0].message);
+    logger.warn(`Employee validation failed: ${error.details[0].message}`);
     return h.response({ error: error.details[0].message }).code(400);
   }
 
@@ -131,9 +132,10 @@ export const createEmployee = async (
     });
 
     await employeeRepository.save(newEmployee);
+    logger.info(`Employee created successfully: ${newEmployee.email}`);
     return h.response(newEmployee).code(201);
   } catch (err) {
-    console.error('Error creating employee:', err);
+    logger.error('Error creating employee:', err);
     return h.response({ error: 'Server error' }).code(500);
   }
 };
@@ -155,7 +157,7 @@ export const getEmployeeProfile = async (
     }
     return h.response(employee).code(200);
   } catch (err) {
-    console.error('Error fetching employee profile:', err);
+    logger.error('Error fetching employee profile:', err);
     return h.response({ error: 'Server error' }).code(500);
   }
 };
@@ -202,7 +204,7 @@ export const updateEmployeeProfile = async (
       employee: employeeWithoutPassword 
     }).code(200);
   } catch (err) {
-    console.error('Error updating employee profile:', err);
+    logger.error('Error updating employee profile:', err);
     return h.response({ error: 'Server error' }).code(500);
   }
 };

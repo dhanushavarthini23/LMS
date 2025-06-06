@@ -35,14 +35,10 @@ const LeaveTypeManagement = ({ leaveTypes, onLeaveTypeUpdate }) => {
     setSuccess('');
 
     try {
-      console.log('LeaveTypeManagement: Submitting form data:', formData);
-      
       if (editingLeaveType) {
-        console.log('LeaveTypeManagement: Updating leave type ID:', editingLeaveType.id);
         await updateLeaveType(editingLeaveType.id, formData);
         setSuccess('Leave type updated successfully!');
       } else {
-        console.log('LeaveTypeManagement: Creating new leave type');
         await createLeaveType(formData);
         setSuccess('Leave type created successfully!');
       }

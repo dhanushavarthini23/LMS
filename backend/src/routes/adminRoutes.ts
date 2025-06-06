@@ -5,6 +5,7 @@ import { LeaveRequest } from '../entities/LeaveRequest';
 import { Department } from '../entities/Department';
 import { LeaveType } from '../entities/LeaveType';
 import * as Joi from 'joi';
+import logger from '../utils/logger';
 
 const adminRoutes: ServerRoute[] = [
   {
@@ -135,7 +136,7 @@ const adminRoutes: ServerRoute[] = [
 
         return h.response(stats).code(200);
       } catch (error) {
-        console.error('Error fetching admin stats:', error);
+        logger.error('Error fetching admin stats:', error);
         return h.response({ 
           message: 'Failed to fetch system statistics',
           error: error instanceof Error ? error.message : 'Unknown error'

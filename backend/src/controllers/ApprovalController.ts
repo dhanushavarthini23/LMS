@@ -3,6 +3,7 @@ import AppDataSource from '../data-source';
 import { LeaveRequest } from '../entities/LeaveRequest';
 import { Approval }     from '../entities/Approval';
 import { Employee }     from '../entities/Employee';
+import logger from '../utils/logger';
 
 export class ApprovalController {
   static async managerDecision(req: Request, h: ResponseToolkit) {
@@ -50,22 +51,22 @@ export class ApprovalController {
             
             const leaveTypeName = leave.leaveType?.name || 'Annual Leave';
             
-            console.log(`Manager directly approving: Updating leave balance for ${leaveTypeName} - deducting ${days} days`);
+            logger.info(`Manager directly approving: Updating leave balance for ${leaveTypeName} - deducting ${days} days`);
             
             // Update specific leave type balance
             if (leaveTypeName === 'Annual Leave' || leaveTypeName === 'Vacation') {
               employee.annualLeaveBalance = Math.max(0, employee.annualLeaveBalance - days);
-              console.log(`Updated annual leave balance to ${employee.annualLeaveBalance}`);
+              logger.info(`Updated annual leave balance to ${employee.annualLeaveBalance}`);
             } else if (leaveTypeName === 'Sick Leave') {
               employee.sickLeaveBalance = Math.max(0, employee.sickLeaveBalance - days);
-              console.log(`Updated sick leave balance to ${employee.sickLeaveBalance}`);
+              logger.info(`Updated sick leave balance to ${employee.sickLeaveBalance}`);
             } else if (leaveTypeName === 'Personal Leave') {
               employee.personalLeaveBalance = Math.max(0, employee.personalLeaveBalance - days);
-              console.log(`Updated personal leave balance to ${employee.personalLeaveBalance}`);
+              logger.info(`Updated personal leave balance to ${employee.personalLeaveBalance}`);
             }
             
             await empRepo.save(employee);
-            console.log(`Employee leave balances updated successfully by manager approval`);
+            logger.info(`Employee leave balances updated successfully by manager approval`);
           }
         } else {
           leave.status = 'Manager Approved';
@@ -85,7 +86,7 @@ export class ApprovalController {
         })
         .code(200);
     } catch (err) {
-      console.error('Error in manager approval:', err);
+      logger.error('Error in manager approval:', err);
       return h.response({ error: 'Failed to process manager decision' }).code(500);
     }
   }
@@ -130,27 +131,27 @@ export class ApprovalController {
             (1000 * 60 * 60 * 24) + 1;
         const leaveTypeName = leave.leaveType?.name || 'Annual Leave';
         
-        console.log(`Updating leave balance for ${leaveTypeName} - deducting ${days} days`);
+        logger.info(`Updating leave balance for ${leaveTypeName} - deducting ${days} days`);
         
         // Update specific leave type balance
         if (leaveTypeName === 'Annual Leave' || leaveTypeName === 'Vacation') {
           leave.employee.annualLeaveBalance = Math.max(0, leave.employee.annualLeaveBalance - days);
-          console.log(`Updated annual leave balance to ${leave.employee.annualLeaveBalance}`);
+          logger.info(`Updated annual leave balance to ${leave.employee.annualLeaveBalance}`);
         } else if (leaveTypeName === 'Sick Leave') {
           leave.employee.sickLeaveBalance = Math.max(0, leave.employee.sickLeaveBalance - days);
-          console.log(`Updated sick leave balance to ${leave.employee.sickLeaveBalance}`);
+          logger.info(`Updated sick leave balance to ${leave.employee.sickLeaveBalance}`);
         } else if (leaveTypeName === 'Personal Leave') {
           leave.employee.personalLeaveBalance = Math.max(0, leave.employee.personalLeaveBalance - days);
-          console.log(`Updated personal leave balance to ${leave.employee.personalLeaveBalance}`);
+          logger.info(`Updated personal leave balance to ${leave.employee.personalLeaveBalance}`);
         }
         
         await empRepo.save(leave.employee);
-        console.log(`Employee leave balances updated successfully`);
+        logger.info(`Employee leave balances updated successfully`);
       }
 
       return h.response({ message: `Leave ${decision.toLowerCase()} by HR` }).code(200);
     } catch (err) {
-      console.error('Error in HR approval:', err);
+      logger.error('Error in HR approval:', err);
       return h.response({ error: 'Failed to process HR decision' }).code(500);
     }
   }

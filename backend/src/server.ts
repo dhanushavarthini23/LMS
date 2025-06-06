@@ -4,6 +4,7 @@ import HapiAuthJWT from 'hapi-auth-jwt2';
 import Vision from '@hapi/vision';
 import HapiSwagger from 'hapi-swagger';
 import { logRequest, isAuthenticated, isManager, isHR } from './middlewares';
+import logger from './utils/logger';
 import employeeRoutes from './routes/employeeRoutes';
 import leaveRoutes from './routes/leaveRoutes';
 import leaveTypeRoutes from './routes/leaveTypeRoutes';
@@ -20,11 +21,11 @@ const JWT_SECRET = process.env.JWT_SECRET || 'sD7@8kj1!ld$gF30P1wz';
 const init = async () => {
   try {
     await AppDataSource.initialize();
-    console.log('Entities:', AppDataSource.entityMetadatas.map(e => e.name));
+    logger.info(`Entities: ${AppDataSource.entityMetadatas.map(e => e.name).join(', ')}`);
     await AppDataSource.synchronize();
-    console.log('Database schema synchronized.');
+    logger.info('Database schema synchronized.');
   } catch (err) {
-    console.error('Error connecting to the database:', err);
+    logger.error('Error connecting to the database:', err);
     process.exit(1);
   }
 
@@ -105,16 +106,16 @@ const init = async () => {
   adminRoutes.forEach(route => server.route(route));
   dashboardRoutes.forEach(route => server.route(route));
   try {
-    console.log(server.table());
+    logger.debug('Server routes loaded successfully');
     await server.start();
-    console.log(`Server running on ${server.info.uri}`);
+    logger.info(`Server running on ${server.info.uri}`);
   } catch (err) {
-    console.error('Error starting server:', err);
+    logger.error('Error starting server:', err);
     process.exit(1);
   }
 };
 
 init().catch((err) => {
-  console.error('Error in initialization:', err);
+  logger.error('Error in initialization:', err);
   process.exit(1);
 });

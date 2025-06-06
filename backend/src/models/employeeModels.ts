@@ -1,4 +1,5 @@
-import pool from '../config/db'; 
+import pool from '../config/db';
+import logger from '../utils/logger'; 
 
 
 export type Role = 'employee' | 'manager' | 'hr';
@@ -14,7 +15,7 @@ const getAllEmployees = async (): Promise<Employee[]> => {
     const result = await pool.query('SELECT * FROM employees ORDER BY id');
     return result.rows;
   } catch (error) {
-    console.error('Error fetching employees:', error);
+    logger.error('Error fetching employees:', error);
     throw new Error('Failed to fetch employees.');
   }
 };
@@ -31,7 +32,7 @@ const addEmployee = async (
     );
     return result.rows[0];
   } catch (error) {
-    console.error('Error adding employee:', error);
+    logger.error('Error adding employee:', error);
     throw new Error('Failed to add employee.');
   }
 };
@@ -41,7 +42,7 @@ const getEmployeeById = async (id: number): Promise<Employee | null> => {
     const result = await pool.query('SELECT * FROM employees WHERE id = $1', [id]);
     return result.rows[0] || null;
   } catch (error) {
-    console.error('Error fetching employee by ID:', error);
+    logger.error('Error fetching employee by ID:', error);
     throw new Error('Failed to fetch employee profile.');
   }
 };
