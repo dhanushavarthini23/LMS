@@ -142,6 +142,8 @@ const ManagerDashboard = () => {
       setLoading(true);
       setError('');
       
+      console.log('Attempting to approve leave request with ID:', id);
+      
       // Call the API to approve the leave request
       const response = await approveLeaveRequestManager(id, true);
       console.log('Approval response:', response);
@@ -172,7 +174,7 @@ const ManagerDashboard = () => {
       }, 3000);
     } catch (error) {
       console.error('Error approving leave request:', error);
-      setError('Failed to approve leave request. Please try again.');
+      setError(`Failed to approve leave request: ${error.response?.data?.message || error.message}`);
     } finally {
       setLoading(false);
     }
@@ -215,7 +217,7 @@ const ManagerDashboard = () => {
       }, 3000);
     } catch (error) {
       console.error('Error rejecting leave request:', error);
-      setError('Failed to reject leave request. Please try again.');
+      setError(`Failed to reject leave request: ${error.response?.data?.message || error.message}`);
     } finally {
       setLoading(false);
     }
@@ -679,7 +681,7 @@ const ManagerDashboard = () => {
                       <tbody className="bg-white divide-y divide-gray-200">
                         {getFilteredPendingRequests().map((request) => {
                           // Determine if current user can approve this request
-                          const canApprove = request.approvals?.some(a => a.level === 'manager' && a.status === 'Pending');
+                          const canApprove = request.status === 'Pending';
                           
                           return (
                             <tr key={request.id} className="hover:bg-gray-50">

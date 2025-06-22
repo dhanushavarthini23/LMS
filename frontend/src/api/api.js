@@ -71,17 +71,30 @@ export const getAllLeaveRequests = async () => {
 };
 
 export const approveLeaveRequestManager = async (leaveId, isApproved, comment = '') => {
-  return api.post(`/api/leave-requests/${leaveId}/approve/manager`, {
-    decision: isApproved ? 'approve' : 'reject',
-    comment,
-  });
+  const payload = {
+    decision: isApproved ? 'approve' : 'reject'
+  };
+  
+  // Only include comment if it's not empty
+  if (comment && comment.trim()) {
+    payload.comment = comment.trim();
+  }
+  
+
+  return api.post(`/api/leave-requests/${leaveId}/approve/manager`, payload);
 };
 
 export const approveLeaveRequestHR = async (leaveId, isApproved, comment = '') => {
-  return api.post(`/api/leave-requests/${leaveId}/approve/hr`, {
-    decision: isApproved ? 'approve' : 'reject',
-    comment,
-  });
+  const payload = {
+    decision: isApproved ? 'approve' : 'reject'
+  };
+  
+  // Only include comment if it's not empty
+  if (comment && comment.trim()) {
+    payload.comment = comment.trim();
+  }
+  
+  return api.post(`/api/leave-requests/${leaveId}/approve/hr`, payload);
 };
 
 // Dashboard
@@ -127,7 +140,6 @@ export const markAllNotificationsAsRead = async () => {
 
 // Team Leave Calendar
 export const getTeamLeaves = async (year, month) => {
-  console.log(`API call: /api/leaves/team with year=${year}, month=${month}`);
   return api.get(`/api/leaves/team`, {
     params: { year, month }
   });
