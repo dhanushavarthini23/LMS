@@ -9,7 +9,7 @@ interface CustomAuthCredentials {
 export const isManager = async (request: Request, h: ResponseToolkit) => {
   const credentials = request.auth.credentials as CustomAuthCredentials;
 
-  if (!credentials || credentials.role !== 'manager') {
+  if (!credentials || credentials.role !== 'Manager') {
     return h.response({ message: 'Unauthorized: Only managers can approve leave requests' }).code(403);
   }
 
@@ -20,7 +20,7 @@ export const isManager = async (request: Request, h: ResponseToolkit) => {
 export const isHR = async (request: Request, h: ResponseToolkit) => {
   const credentials = request.auth.credentials as CustomAuthCredentials;
 
-  if (!credentials || credentials.role !== 'hr') {
+  if (!credentials || credentials.role !== 'HR') {
     return h.response({ message: 'Unauthorized: Only HR can perform this action' }).code(403);
   }
 

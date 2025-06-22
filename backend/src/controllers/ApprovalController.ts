@@ -19,9 +19,14 @@ export class ApprovalController {
     try {
       const leave = await lrRepo.findOne({ 
         where: { id: lrId }, 
-        relations: ['approvals', 'leaveType'] 
+        relations: ['approvals', 'leaveType', 'employee'] 
       });
-      if (!leave || leave.status !== 'Pending') {
+      
+      if (!leave) {
+        return h.response({ message: 'Leave request not found' }).code(404);
+      }
+      
+      if (leave.status !== 'Pending') {
         return h.response({ message: 'Leave request is not in Pending state' }).code(400);
       }
 
@@ -29,16 +34,17 @@ export class ApprovalController {
       if (!approver) {
         return h.response({ message: 'Approver not found' }).code(404);
       }
+      
       await apRepo.save({
         leaveRequest: leave,
         approver:     approver,
         level:        'manager',
-        status:       decision,
+        status:       decision as 'Approved' | 'Rejected',
       });
+
       if (decision === 'Approved') {
         if (leave.leaveType.approvalLevels === 1) {
           leave.status = 'Approved';
-          
           
           const days =
             (new Date(leave.endDate).getTime() - new Date(leave.startDate).getTime()) /
@@ -48,25 +54,18 @@ export class ApprovalController {
           });
           
           if (employee) {
-            
             const leaveTypeName = leave.leaveType?.name || 'Annual Leave';
-            
-            logger.info(`Manager directly approving: Updating leave balance for ${leaveTypeName} - deducting ${days} days`);
             
             // Update specific leave type balance
             if (leaveTypeName === 'Annual Leave' || leaveTypeName === 'Vacation') {
               employee.annualLeaveBalance = Math.max(0, employee.annualLeaveBalance - days);
-              logger.info(`Updated annual leave balance to ${employee.annualLeaveBalance}`);
             } else if (leaveTypeName === 'Sick Leave') {
               employee.sickLeaveBalance = Math.max(0, employee.sickLeaveBalance - days);
-              logger.info(`Updated sick leave balance to ${employee.sickLeaveBalance}`);
             } else if (leaveTypeName === 'Personal Leave') {
               employee.personalLeaveBalance = Math.max(0, employee.personalLeaveBalance - days);
-              logger.info(`Updated personal leave balance to ${employee.personalLeaveBalance}`);
             }
             
             await empRepo.save(employee);
-            logger.info(`Employee leave balances updated successfully by manager approval`);
           }
         } else {
           leave.status = 'Manager Approved';
@@ -76,18 +75,20 @@ export class ApprovalController {
       }
       await lrRepo.save(leave);
 
+      const successMessage = decision === 'Approved' 
+        ? (leave.leaveType.approvalLevels === 1 
+            ? 'Leave fully approved by manager' 
+            : 'Leave approved by manager; now pending HR')
+        : 'Leave rejected by manager';
+
       return h
         .response({
-          message: decision === 'Approved' 
-            ? (leave.leaveType.approvalLevels === 1 
-                ? 'Leave fully approved by manager' 
-                : 'Leave approved by manager; now pending HR')
-            : 'Leave rejected by manager'
+          message: successMessage
         })
         .code(200);
     } catch (err) {
       logger.error('Error in manager approval:', err);
-      return h.response({ error: 'Failed to process manager decision' }).code(500);
+      return h.response({ message: 'Failed to process manager decision' }).code(500);
     }
   }
 
@@ -107,7 +108,12 @@ export class ApprovalController {
         where: { id: lrId },
         relations: ['approvals', 'employee', 'leaveType'],
       });
-      if (!leave || leave.status !== 'Manager Approved') {
+      
+      if (!leave) {
+        return h.response({ message: 'Leave request not found' }).code(404);
+      }
+      
+      if (leave.status !== 'Manager Approved') {
         return h.response({ message: 'Leave request not ready for HR review' }).code(400);
       }
 
@@ -121,38 +127,41 @@ export class ApprovalController {
         leaveRequest: leave,
         approver:     approver,
         level:        'hr',
-        status:       decision,
+        status:       decision as 'Approved' | 'Rejected',
       });
-      leave.status = decision;
+      leave.status = decision as 'Approved' | 'Rejected';
       await lrRepo.save(leave);
+
       if (decision === 'Approved') {
         const days =
           (new Date(leave.endDate).getTime() - new Date(leave.startDate).getTime()) /
             (1000 * 60 * 60 * 24) + 1;
-        const leaveTypeName = leave.leaveType?.name || 'Annual Leave';
+        const employee = await empRepo.findOne({
+          where: { id: leave.employee.id }
+        });
         
-        logger.info(`Updating leave balance for ${leaveTypeName} - deducting ${days} days`);
-        
-        // Update specific leave type balance
-        if (leaveTypeName === 'Annual Leave' || leaveTypeName === 'Vacation') {
-          leave.employee.annualLeaveBalance = Math.max(0, leave.employee.annualLeaveBalance - days);
-          logger.info(`Updated annual leave balance to ${leave.employee.annualLeaveBalance}`);
-        } else if (leaveTypeName === 'Sick Leave') {
-          leave.employee.sickLeaveBalance = Math.max(0, leave.employee.sickLeaveBalance - days);
-          logger.info(`Updated sick leave balance to ${leave.employee.sickLeaveBalance}`);
-        } else if (leaveTypeName === 'Personal Leave') {
-          leave.employee.personalLeaveBalance = Math.max(0, leave.employee.personalLeaveBalance - days);
-          logger.info(`Updated personal leave balance to ${leave.employee.personalLeaveBalance}`);
+        if (employee) {
+          const leaveTypeName = leave.leaveType?.name || 'Annual Leave';
+          
+          // Update specific leave type balance
+          if (leaveTypeName === 'Annual Leave' || leaveTypeName === 'Vacation') {
+            employee.annualLeaveBalance = Math.max(0, employee.annualLeaveBalance - days);
+          } else if (leaveTypeName === 'Sick Leave') {
+            employee.sickLeaveBalance = Math.max(0, employee.sickLeaveBalance - days);
+          } else if (leaveTypeName === 'Personal Leave') {
+            employee.personalLeaveBalance = Math.max(0, employee.personalLeaveBalance - days);
+          }
+          
+          await empRepo.save(employee);
         }
-        
-        await empRepo.save(leave.employee);
-        logger.info(`Employee leave balances updated successfully`);
       }
 
-      return h.response({ message: `Leave ${decision.toLowerCase()} by HR` }).code(200);
+      const successMessage = `Leave ${decision.toLowerCase()} by HR`;
+      
+      return h.response({ message: successMessage }).code(200);
     } catch (err) {
       logger.error('Error in HR approval:', err);
-      return h.response({ error: 'Failed to process HR decision' }).code(500);
+      return h.response({ message: 'Failed to process HR decision' }).code(500);
     }
   }
 }

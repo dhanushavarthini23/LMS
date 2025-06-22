@@ -567,10 +567,11 @@ const leaveRoutes: ServerRoute[] = [
       notes: 'Allows a manager to approve or reject a leave request',
       validate: {
         params: Joi.object({
-          id: Joi.number().required().description('Leave request ID')
+          id: Joi.string().pattern(/^\d+$/).required().description('Leave request ID')
         }),
         payload: Joi.object({
-          decision: Joi.string().valid('approve', 'reject').required().description('Approval decision')
+          decision: Joi.string().valid('approve', 'reject').required().description('Approval decision'),
+          comment: Joi.string().allow('').optional().description('Optional comment for the decision')
         })
       },
       plugins: {
@@ -613,10 +614,11 @@ const leaveRoutes: ServerRoute[] = [
       notes: 'Allows an HR representative to approve or reject a leave request',
       validate: {
         params: Joi.object({
-          id: Joi.number().required().description('Leave request ID')
+          id: Joi.string().pattern(/^\d+$/).required().description('Leave request ID')
         }),
         payload: Joi.object({
-          decision: Joi.string().valid('approve', 'reject').required().description('Approval decision')
+          decision: Joi.string().valid('approve', 'reject').required().description('Approval decision'),
+          comment: Joi.string().allow('').optional().description('Optional comment for the decision')
         })
       },
       plugins: {
